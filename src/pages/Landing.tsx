@@ -5,17 +5,23 @@ import { processIncoming } from "@/features/ingest/processIncoming";
 import { parseICSFile } from "@/features/calendar/icsParser";
 import { downloadICS } from "@/features/calendar/icsExport";
 import { requestNotificationPermission, checkForLeaksAndNotify } from "@/features/notifications/webNotifications";
-import { PotentialEvent, Settings } from "@/core/types";
+import { PotentialEvent, Settings, CalendarEvent } from "@/core/types";
 import { matchAgainstCalendar } from "@/core/matcher";
 import { deriveStatus } from "@/core/stateMachine";
+import { EventCard } from "@/components/EventCard";
 import "../styles/home.css";
 
 export default function Landing() {
   const [events, setEvents] = useState<PotentialEvent[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [icsFile, setIcsFile] = useState<File | null>(null);
+  
+  // Modals state
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   useEffect(() => {
     initializeApp().catch(error => {
@@ -30,6 +36,7 @@ export default function Landing() {
       await autopurge();
       await loadEvents();
       await loadSettings();
+      await loadCalendarEvents();
       await requestNotificationPermission();
       
       const allEvents = await db.potentialEvents.toArray();
@@ -52,12 +59,54 @@ export default function Landing() {
     }
   }
 
+  async function loadCalendarEvents() {
+    try {
+      const evs = await db.calendarEvents
+        .orderBy('start')
+        .toArray();
+      setCalendarEvents(evs);
+    } catch (error) {
+      console.error('Failed to load calendar events:', error);
+    }
+  }
+
   async function loadSettings() {
     try {
       const s = await db.settings.get(1);
       if (s) setSettings(s);
     } catch (error) {
       console.error('Failed to load settings:', error);
+    }
+  }
+
+  async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+    if (!settings) return;
+    try {
+      const newSettings = { ...settings, [key]: value };
+      await db.settings.put({ ...newSettings, id: 1 });
+      setSettings(newSettings);
+      toast.success("Configuración guardada");
+      
+      // If window_hours changed, recalculate statuses
+      if (key === 'window_hours') {
+        await recalculateAllStatuses();
+        await loadEvents();
+      }
+    } catch (error) {
+      toast.error("Error al guardar configuración");
+    }
+  }
+
+  async function handleClearCalendar() {
+    if (!confirm("¿Estás seguro de borrar todos los eventos importados?")) return;
+    try {
+      await db.calendarEvents.clear();
+      await loadCalendarEvents();
+      await recalculateAllStatuses();
+      await loadEvents();
+      toast.success("Calendario limpiado");
+    } catch (error) {
+      toast.error("Error al limpiar calendario");
     }
   }
 
@@ -116,6 +165,7 @@ export default function Landing() {
       
       toast.success(`${parsedEvents.length} eventos importados`);
       await loadEvents();
+      await loadCalendarEvents();
       setIcsFile(null);
     } catch (error) {
       toast.error("Error al importar ICS");
@@ -142,6 +192,18 @@ export default function Landing() {
     }
   }
 
+  async function handleMarkCovered(id: number) {
+    await db.potentialEvents.update(id, { status: 'covered', updated_at: new Date() });
+    await loadEvents();
+    toast.success("Marcado como cubierto");
+  }
+
+  async function handleDiscard(id: number) {
+    await db.potentialEvents.update(id, { status: 'discarded', updated_at: new Date() });
+    await loadEvents();
+    toast.success("Evento descartado");
+  }
+
   const leaks = events.filter(e => e.status === 'leak');
   const pending = events.filter(e => e.status === 'pending');
 
@@ -156,10 +218,20 @@ export default function Landing() {
           </div>
         </div>
         <div className="ea-header__right">
-          <button className="ea-iconbtn" aria-label="Calendario" type="button">
+          <button 
+            className="ea-iconbtn" 
+            aria-label="Calendario" 
+            type="button"
+            onClick={() => setShowCalendar(true)}
+          >
             📅
           </button>
-          <button className="ea-iconbtn" aria-label="Ajustes" type="button">
+          <button 
+            className="ea-iconbtn" 
+            aria-label="Ajustes" 
+            type="button"
+            onClick={() => setShowSettings(true)}
+          >
             ⚙️
           </button>
         </div>
@@ -224,16 +296,140 @@ export default function Landing() {
               <span className="ea-badge">Pendientes {pending.length}</span>
             </div>
           </div>
-          <div className="ea-empty">
-            <div className="ea-empty__icon">✅</div>
-            <div className="ea-empty__text">
-              {leaks.length === 0 && pending.length === 0 
-                ? "No hay compromisos sin agendar próximos" 
-                : `${leaks.length} fugas y ${pending.length} pendientes detectados`}
+          
+          {leaks.length === 0 && pending.length === 0 ? (
+            <div className="ea-empty">
+              <div className="ea-empty__icon">✅</div>
+              <div className="ea-empty__text">
+                No hay compromisos sin agendar próximos
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="ea-list">
+              {leaks.map(event => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  onMarkCovered={handleMarkCovered}
+                  onDiscard={handleDiscard}
+                  onDownloadICS={downloadICS}
+                />
+              ))}
+              {pending.map(event => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  onMarkCovered={handleMarkCovered}
+                  onDiscard={handleDiscard}
+                  onDownloadICS={downloadICS}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && settings && (
+        <div className="ea-modal-backdrop" onClick={() => setShowSettings(false)}>
+          <div className="ea-modal" onClick={e => e.stopPropagation()}>
+            <div className="ea-modal__header">
+              <div className="ea-modal__title">Configuración</div>
+              <button className="ea-modal__close" onClick={() => setShowSettings(false)}>×</button>
+            </div>
+            <div className="ea-modal__content">
+              <div className="ea-field">
+                <span className="ea-label">Ventana de detección</span>
+                <select 
+                  className="ea-select"
+                  value={settings.window_hours}
+                  onChange={(e) => updateSetting('window_hours', Number(e.target.value) as 24 | 48)}
+                >
+                  <option value={24}>24 horas</option>
+                  <option value={48}>48 horas</option>
+                </select>
+              </div>
+              
+              <div className="ea-field">
+                <span className="ea-label">Retención de datos</span>
+                <select 
+                  className="ea-select"
+                  value={settings.retention_days}
+                  onChange={(e) => updateSetting('retention_days', Number(e.target.value) as 7 | 30 | 90)}
+                >
+                  <option value={7}>7 días</option>
+                  <option value={30}>30 días</option>
+                  <option value={90}>90 días</option>
+                </select>
+              </div>
+
+              <div className="ea-field">
+                <span className="ea-label">Notificaciones</span>
+                <div className="ea-row">
+                  <button 
+                    className={`ea-btn ${settings.notifications_enabled ? 'ea-btn--primary' : 'ea-btn--ghost'}`}
+                    onClick={() => updateSetting('notifications_enabled', true)}
+                  >
+                    Activadas
+                  </button>
+                  <button 
+                    className={`ea-btn ${!settings.notifications_enabled ? 'ea-btn--primary' : 'ea-btn--ghost'}`}
+                    onClick={() => updateSetting('notifications_enabled', false)}
+                  >
+                    Desactivadas
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar Modal */}
+      {showCalendar && (
+        <div className="ea-modal-backdrop" onClick={() => setShowCalendar(false)}>
+          <div className="ea-modal" onClick={e => e.stopPropagation()}>
+            <div className="ea-modal__header">
+              <div className="ea-modal__title">Eventos importados</div>
+              <button className="ea-modal__close" onClick={() => setShowCalendar(false)}>×</button>
+            </div>
+            <div className="ea-modal__content">
+              <div className="ea-row ea-row--between">
+                <span className="ea-label">{calendarEvents.length} eventos</span>
+                {calendarEvents.length > 0 && (
+                  <button className="ea-btn ea-btn--ghost" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleClearCalendar}>
+                    Borrar todo
+                  </button>
+                )}
+              </div>
+              
+              {calendarEvents.length === 0 ? (
+                <div className="ea-empty">
+                  <div className="ea-empty__text">No hay eventos importados</div>
+                </div>
+              ) : (
+                <div className="ea-list">
+                  {calendarEvents.slice(0, 50).map(ev => (
+                    <div key={ev.id} className="ea-list-item">
+                      <div className="ea-list-item__top">
+                        <span>{ev.summary}</span>
+                      </div>
+                      <div className="ea-list-item__sub">
+                        {ev.start.toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                  {calendarEvents.length > 50 && (
+                    <div className="ea-list-item" style={{ textAlign: 'center', color: 'var(--muted)' }}>
+                      ... y {calendarEvents.length - 50} más
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
