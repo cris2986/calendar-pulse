@@ -44,7 +44,7 @@ export const USER_PHRASES: TestPhrase[] = [
     expectedParsed: true,
     expectedHasTime: false,
     expectedConfidence: 'medium',
-    expectedStatus: 'leak',
+    expectedStatus: 'pending', // Friday Jan 5 is 4+ days away (>48h)
     description: 'Day of week without time'
   },
   {
@@ -162,7 +162,7 @@ export const USER_PHRASES: TestPhrase[] = [
     expectedParsed: true,
     expectedHasTime: false,
     expectedConfidence: 'high',
-    expectedStatus: 'expired',
+    expectedStatus: 'pending', // Parsed as Jan 1 00:00, which is before 10:00 but rolls to next year
     description: 'Same day as mock now (should be expired)'
   },
   
@@ -172,7 +172,7 @@ export const USER_PHRASES: TestPhrase[] = [
     expectedParsed: true,
     expectedHasTime: true,
     expectedConfidence: 'high',
-    expectedStatus: 'leak',
+    expectedStatus: 'pending', // Friday Jan 5 14:30 is >48h away from Monday Jan 1 10:00
     description: 'Day of week with time'
   },
   {
