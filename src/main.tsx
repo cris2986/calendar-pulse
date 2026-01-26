@@ -3,7 +3,7 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { StrictMode, useEffect, lazy, Suspense } from "react";
+import { StrictMode, useEffect, lazy, Suspense, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -69,6 +69,18 @@ function RouteSyncer() {
 // App component with layered mounting
 function App() {
   if (boot) boot.textContent += "APP COMPONENT MOUNTED\n";
+  
+  useEffect(() => {
+    if (boot) {
+      boot.textContent += "ROUTES RENDERED\n";
+      // Auto-hide diagnostic overlay after 3 seconds if no errors
+      setTimeout(() => {
+        if (boot && !boot.textContent.includes("ERROR") && !boot.textContent.includes("UNHANDLED")) {
+          boot.style.display = "none";
+        }
+      }, 3000);
+    }
+  }, []);
   
   return (
     <BrowserRouter>

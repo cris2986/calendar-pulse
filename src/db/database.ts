@@ -31,34 +31,44 @@ export const db = new EventAuditorDB();
 
 // Initialize default settings
 export async function initializeSettings(): Promise<void> {
-  const existing = await db.settings.get(1);
-  if (!existing) {
-    await db.settings.add({
-      id: 1,
-      window_hours: 48,
-      retention_days: 30,
-      default_calendar_source: 'none',
-      notifications_enabled: true
-    });
+  try {
+    const existing = await db.settings.get(1);
+    if (!existing) {
+      await db.settings.add({
+        id: 1,
+        window_hours: 48,
+        retention_days: 30,
+        default_calendar_source: 'none',
+        notifications_enabled: true
+      });
+    }
+  } catch (error) {
+    console.error('Failed to initialize settings:', error);
+    throw new Error('Database initialization failed: ' + error);
   }
 }
 
 // Autopurge old records
 export async function autopurge(): Promise<void> {
-  const settings = await db.settings.get(1);
-  if (!settings) return;
-  
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - settings.retention_days);
-  
-  // Delete old raw records
-  await db.rawRecords.where('created_at').below(cutoffDate).delete();
-  
-  // Delete old potential events
-  await db.potentialEvents.where('created_at').below(cutoffDate).delete();
-  
-  // Delete old calendar cache (older than 24h)
-  const cacheCutoff = new Date();
-  cacheCutoff.setHours(cacheCutoff.getHours() - 24);
-  await db.calendarEvents.where('imported_at').below(cacheCutoff).delete();
+  try {
+    const settings = await db.settings.get(1);
+    if (!settings) return;
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - settings.retention_days);
+    
+    // Delete old raw records
+    await db.rawRecords.where('created_at').below(cutoffDate).delete();
+    
+    // Delete old potential events
+    await db.potentialEvents.where('created_at').below(cutoffDate).delete();
+    
+    // Delete old calendar cache (older than 24h)
+    const cacheCutoff = new Date();
+    cacheCutoff.setHours(cacheCutoff.getHours() - 24);
+    await db.calendarEvents.where('imported_at').below(cacheCutoff).delete();
+  } catch (error) {
+    console.error('Autopurge failed:', error);
+    // Don't throw - autopurge failure shouldn't block app startup
+  }
 }

@@ -27,31 +27,48 @@ export default function Landing() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    initializeApp();
+    initializeApp().catch(error => {
+      console.error('Failed to initialize app:', error);
+      toast.error('Error al inicializar la aplicación: ' + error.message);
+    });
   }, []);
 
   async function initializeApp() {
-    await initializeSettings();
-    await autopurge();
-    await loadEvents();
-    await loadSettings();
-    await requestNotificationPermission();
-    
-    // Check for leaks on load
-    const allEvents = await db.potentialEvents.toArray();
-    checkForLeaksAndNotify(allEvents);
+    try {
+      await initializeSettings();
+      await autopurge();
+      await loadEvents();
+      await loadSettings();
+      await requestNotificationPermission();
+      
+      // Check for leaks on load
+      const allEvents = await db.potentialEvents.toArray();
+      checkForLeaksAndNotify(allEvents);
+    } catch (error) {
+      console.error('Initialization error:', error);
+      throw error;
+    }
   }
 
   async function loadEvents() {
-    const allEvents = await db.potentialEvents
-      .orderBy('detected_start')
-      .toArray();
-    setEvents(allEvents);
+    try {
+      const allEvents = await db.potentialEvents
+        .orderBy('detected_start')
+        .toArray();
+      setEvents(allEvents);
+    } catch (error) {
+      console.error('Failed to load events:', error);
+      setEvents([]);
+    }
   }
 
   async function loadSettings() {
-    const s = await db.settings.get(1);
-    if (s) setSettings(s);
+    try {
+      const s = await db.settings.get(1);
+      if (s) setSettings(s);
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
   }
 
   async function handlePaste() {
