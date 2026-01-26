@@ -52,7 +52,6 @@ export default function Landing() {
       const allEvents = await db.potentialEvents
         .orderBy('detected_start')
         .toArray();
-      console.log('Loading events:', allEvents.length, 'events found');
       setEvents(allEvents);
     } catch (error) {
       console.error('Failed to load events:', error);
@@ -118,45 +117,27 @@ export default function Landing() {
     }
     
     setLoading(true);
-    try {
-      const result = await processIncoming(inputText, 'paste');
-      
-      if (result.success) {
-        toast.success("Compromiso procesado");
-        setInputText("");
-        await loadEvents();
-        
-        // Force a re-check after loading
-        const allEvents = await db.potentialEvents.toArray();
-        console.log('Events after processing:', allEvents);
-      } else {
-        toast.error("Error al procesar: " + result.error);
-      }
-    } catch (error) {
-      console.error('Error in handleProcessText:', error);
-      toast.error("Error al procesar el texto");
+    const result = await processIncoming(inputText, 'paste');
+    
+    if (result.success) {
+      toast.success("Compromiso procesado");
+      setInputText("");
+      await loadEvents();
+    } else {
+      toast.error("Error al procesar: " + result.error);
     }
     setLoading(false);
   }
 
   async function handlePaste() {
     try {
-      // Check if clipboard API is available
-      if (!navigator.clipboard || !navigator.clipboard.readText) {
-        toast.error("API de portapapeles no disponible. Usa Ctrl+V o Cmd+V para pegar.");
-        return;
-      }
-      
       const text = await navigator.clipboard.readText();
       if (text) {
         setInputText(text);
         toast.success("Texto pegado desde portapapeles");
-      } else {
-        toast.error("El portapapeles está vacío");
       }
     } catch (error) {
-      // Clipboard access denied or not available
-      toast.error("Permiso denegado. Usa Ctrl+V o Cmd+V para pegar manualmente.");
+      toast.error("No se pudo acceder al portapapeles");
     }
   }
 
@@ -225,13 +206,6 @@ export default function Landing() {
 
   const leaks = events.filter(e => e.status === 'leak');
   const pending = events.filter(e => e.status === 'pending');
-  
-  console.log('Rendering bandeja:', { 
-    totalEvents: events.length, 
-    leaks: leaks.length, 
-    pending: pending.length,
-    statuses: events.map(e => ({ id: e.id, status: e.status, summary: e.summary }))
-  });
 
   return (
     <div className="ea-page">
@@ -331,7 +305,7 @@ export default function Landing() {
               </div>
             </div>
           ) : (
-            <>
+            <div className="ea-list">
               {leaks.map(event => (
                 <EventCard 
                   key={event.id} 
@@ -350,7 +324,7 @@ export default function Landing() {
                   onDownloadICS={downloadICS}
                 />
               ))}
-            </>
+            </div>
           )}
         </section>
       </main>
