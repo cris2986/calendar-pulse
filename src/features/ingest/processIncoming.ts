@@ -20,7 +20,7 @@ export async function processIncoming(
       created_at: new Date()
     });
     
-    // 2. Parse date/time
+    // 2. Parse date/time (no reference date in production, uses current time)
     const parsed = parseDateTimeES(content);
     if (!parsed) {
       return { success: true }; // No date found, just saved raw

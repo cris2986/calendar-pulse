@@ -29,11 +29,11 @@ describe('Regression Tests - User Phrases', () => {
       });
 
       if (testCase.expectedParsed) {
-        it('should derive correct status', () => {
-          const parsed = parseDateTimeES(testCase.input);
-          expect(parsed).not.toBeNull();
+      it('should derive correct status', () => {
+        const parsed = parseDateTimeES(testCase.input, MOCK_NOW);
+        expect(parsed).not.toBeNull();
 
-          const potentialEvent: PotentialEvent = {
+        const potentialEvent: PotentialEvent = {
             raw_record_id: 1,
             summary: testCase.input,
             detected_start: parsed!.detected_start,
@@ -59,24 +59,24 @@ describe('Regression Tests - User Phrases', () => {
   describe('Parser Edge Cases', () => {
     it('should handle year rollover for dd/mm dates', () => {
       // If date is in the past, should roll to next year
-      const result = parseDateTimeES('15/12 evento');
+      const result = parseDateTimeES('15/12 evento', MOCK_NOW);
       expect(result).not.toBeNull();
       
       if (result) {
-        // Dec 15 is before Jan 1, so should be next year
-        expect(result.detected_start.getFullYear()).toBe(2024);
+        // Dec 15 is in the past relative to Jan 1, so should be next year (2025)
+        expect(result.detected_start.getFullYear()).toBe(2025);
       }
     });
 
     it('should handle "a las 7" as 7 AM by default', () => {
-      const result = parseDateTimeES('mañana a las 7 desayuno');
+      const result = parseDateTimeES('mañana a las 7 desayuno', MOCK_NOW);
       expect(result).not.toBeNull();
       expect(result?.has_time).toBe(true);
       expect(result?.detected_start.getHours()).toBe(7);
     });
 
     it('should handle "a las 7 pm" as 19:00', () => {
-      const result = parseDateTimeES('mañana a las 7 pm cena');
+      const result = parseDateTimeES('mañana a las 7 pm cena', MOCK_NOW);
       expect(result).not.toBeNull();
       expect(result?.has_time).toBe(true);
       expect(result?.detected_start.getHours()).toBe(19);
@@ -84,7 +84,7 @@ describe('Regression Tests - User Phrases', () => {
 
     it('should handle next occurrence of day of week', () => {
       // MOCK_NOW is Monday Jan 1
-      const result = parseDateTimeES('viernes reunión');
+      const result = parseDateTimeES('viernes reunión', MOCK_NOW);
       expect(result).not.toBeNull();
       
       if (result) {

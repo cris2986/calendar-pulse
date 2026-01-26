@@ -5,9 +5,9 @@ import { ParsedDateTime, Confidence } from './types';
 const DAYS_OF_WEEK = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-export function parseDateTimeES(text: string): ParsedDateTime | null {
+export function parseDateTimeES(text: string, referenceDate?: Date): ParsedDateTime | null {
   const normalized = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const now = new Date();
+  const now = referenceDate || new Date();
   
   let detectedDate: Date | null = null;
   let hasTime = false;
@@ -42,12 +42,14 @@ export function parseDateTimeES(text: string): ParsedDateTime | null {
   
   // Try dd/mm or dd-mm format
   if (!detectedDate) {
-    const dateMatch = normalized.match(/\b(\d{1,2})[\/\-](\d{1,2})\b/);
+    const dateMatch = normalized.match(/\b(\d{1,2})[\\/\-](\d{1,2})\b/);
     if (dateMatch) {
       const day = parseInt(dateMatch[1]);
       const month = parseInt(dateMatch[2]) - 1;
       detectedDate = new Date(now.getFullYear(), month, day);
-      if (detectedDate < now) {
+      
+      // If date is in the past, advance to next year
+      if (detectedDate.getTime() < now.getTime()) {
         detectedDate.setFullYear(detectedDate.getFullYear() + 1);
       }
       confidence = 'high';
