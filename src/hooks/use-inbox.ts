@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/database';
 import { PotentialEvent } from '@/core/types';
 
-export function useInbox() {
+export function useInbox(debugMode = false) {
   const events = useLiveQuery(
     () => db.potentialEvents
       .orderBy('updated_at')
@@ -22,10 +22,17 @@ export function useInbox() {
     [events]
   );
 
+  // Debug mode: show all events regardless of status
+  const allEvents = useMemo(() => 
+    events ?? [],
+    [events]
+  );
+
   return {
-    events: events ?? [],
+    events: debugMode ? allEvents : events ?? [],
     leaks,
     pending,
+    allEvents, // Always available for debugging
     isLoading: events === undefined
   };
 }

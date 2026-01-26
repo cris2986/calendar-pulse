@@ -13,7 +13,13 @@ import { useInbox } from "@/hooks/use-inbox";
 import "../styles/home.css";
 
 export default function Landing() {
-  const { events, leaks, pending, isLoading } = useInbox();
+  // Debug mode toggle (can be controlled via URL param or state)
+  const [debugMode, setDebugMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('debug') === 'true';
+  });
+
+  const { events, leaks, pending, allEvents, isLoading } = useInbox(debugMode);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [inputText, setInputText] = useState("");
@@ -186,6 +192,9 @@ export default function Landing() {
     toast.success("Evento descartado");
   }
 
+  // Display events based on debug mode
+  const displayEvents = debugMode ? allEvents : [...leaks, ...pending];
+
   return (
     <div className="ea-page">
       <header className="ea-header">
@@ -197,6 +206,18 @@ export default function Landing() {
           </div>
         </div>
         <div className="ea-header__right">
+          <button 
+            className="ea-iconbtn" 
+            aria-label="Debug Mode" 
+            type="button"
+            onClick={() => setDebugMode(!debugMode)}
+            style={{ 
+              background: debugMode ? 'rgba(79, 140, 255, 0.2)' : 'rgba(255, 255, 255, 0.02)',
+              borderColor: debugMode ? 'rgba(79, 140, 255, 0.35)' : 'var(--line)'
+            }}
+          >
+            🐛
+          </button>
           <button 
             className="ea-iconbtn" 
             aria-label="Calendario" 
@@ -269,39 +290,26 @@ export default function Landing() {
 
         <section className="ea-card">
           <div className="ea-row ea-row--between ea-stack-sm">
-            <div className="ea-card__title">Bandeja</div>
+            <div className="ea-card__title">
+              Bandeja {debugMode && <span style={{ color: 'var(--primary)', fontSize: '12px' }}>(DEBUG MODE)</span>}
+            </div>
             <div className="ea-badges">
               <span className="ea-badge ea-badge--danger">Fugas {leaks.length}</span>
               <span className="ea-badge">Pendientes {pending.length}</span>
+              {debugMode && <span className="ea-badge">Total {allEvents.length}</span>}
             </div>
           </div>
           
-          {events.length === 0 ? (
+          {displayEvents.length === 0 ? (
             <div className="ea-empty">
               <div className="ea-empty__icon">📭</div>
               <div className="ea-empty__text">
-                No hay eventos procesados aún
-              </div>
-            </div>
-          ) : leaks.length === 0 && pending.length === 0 ? (
-            <div className="ea-empty">
-              <div className="ea-empty__icon">✅</div>
-              <div className="ea-empty__text">
-                No hay compromisos sin agendar próximos
+                {debugMode ? 'No hay eventos procesados (modo debug)' : 'No hay compromisos sin agendar próximos'}
               </div>
             </div>
           ) : (
             <div className="ea-list">
-              {leaks.map((event: PotentialEvent) => (
-                <EventCard 
-                  key={event.id} 
-                  event={event} 
-                  onMarkCovered={handleMarkCovered}
-                  onDiscard={handleDiscard}
-                  onDownloadICS={downloadICS}
-                />
-              ))}
-              {pending.map((event: PotentialEvent) => (
+              {displayEvents.map((event: PotentialEvent) => (
                 <EventCard 
                   key={event.id} 
                   event={event} 
