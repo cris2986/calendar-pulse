@@ -131,13 +131,22 @@ export default function Landing() {
 
   async function handlePaste() {
     try {
+      // Check if clipboard API is available
+      if (!navigator.clipboard || !navigator.clipboard.readText) {
+        toast.error("API de portapapeles no disponible. Usa Ctrl+V o Cmd+V para pegar.");
+        return;
+      }
+      
       const text = await navigator.clipboard.readText();
       if (text) {
         setInputText(text);
         toast.success("Texto pegado desde portapapeles");
+      } else {
+        toast.error("El portapapeles está vacío");
       }
     } catch (error) {
-      toast.error("No se pudo acceder al portapapeles");
+      // Clipboard access denied or not available
+      toast.error("Permiso denegado. Usa Ctrl+V o Cmd+V para pegar manualmente.");
     }
   }
 

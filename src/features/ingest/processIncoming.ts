@@ -6,7 +6,40 @@ import { extractKeywords } from '@/core/normalize';
 import { generateSemanticHash } from '@/core/hash';
 import { matchAgainstCalendar } from '@/core/matcher';
 import { deriveStatus } from '@/core/stateMachine';
-import { PotentialEvent, RawRecord } from '@/core/types';
+import { PotentialEvent, RawRecord, ParsedDateTime } from '@/core/types';
+
+/**
+ * Extracts a clean summary from the content by removing date/time patterns
+ * and limiting to the most relevant text
+ */
+function extractSummary(content: string, parsed: ParsedDateTime): string {
+  let cleaned = content;
+  
+  // Remove common date/time patterns
+  cleaned = cleaned.replace(/\b(hoy|mañana|pasado mañana)\b/gi, '');
+  cleaned = cleaned.replace(/\b(lunes|martes|miércoles|jueves|viernes|sábado|domingo)\b/gi, '');
+  cleaned = cleaned.replace(/\b\d{1,2}[\/\-]\d{1,2}(\b|[\/\-]\d{2,4})/g, '');
+  cleaned = cleaned.replace(/\b(el|la|los|las)\s+\d{1,2}\b/gi, '');
+  cleaned = cleaned.replace(/\b\d{1,2}:\d{2}\b/g, '');
+  cleaned = cleaned.replace(/\ba\s+las?\s+\d{1,2}\b/gi, '');
+  cleaned = cleaned.replace(/\b(en\s+la\s+)?(mañana|tarde|noche)\b/gi, '');
+  cleaned = cleaned.replace(/\b(am|pm)\b/gi, '');
+  
+  // Clean up extra whitespace
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
+  // If nothing left, use original but limit to 50 chars
+  if (cleaned.length < 3) {
+    cleaned = content.slice(0, 50).trim();
+  }
+  
+  // Limit to 50 characters for a clean summary
+  if (cleaned.length > 50) {
+    cleaned = cleaned.slice(0, 47) + '...';
+  }
+  
+  return cleaned;
+}
 
 export async function processIncoming(
   content: string,
@@ -28,7 +61,7 @@ export async function processIncoming(
     
     // 3. Extract keywords and generate hash
     const keywords = extractKeywords(content);
-    const summary = content.slice(0, 100); // First 100 chars as summary
+    const summary = extractSummary(content, parsed); // Smart summary extraction
     const semanticHash = await generateSemanticHash(
       parsed.detected_start,
       parsed.has_time,
