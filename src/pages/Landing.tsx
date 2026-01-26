@@ -297,7 +297,14 @@ export default function Landing() {
             </div>
           </div>
           
-          {leaks.length === 0 && pending.length === 0 ? (
+          {events.length === 0 ? (
+            <div className="ea-empty">
+              <div className="ea-empty__icon">📭</div>
+              <div className="ea-empty__text">
+                No hay eventos procesados aún
+              </div>
+            </div>
+          ) : leaks.length === 0 && pending.length === 0 ? (
             <div className="ea-empty">
               <div className="ea-empty__icon">✅</div>
               <div className="ea-empty__text">

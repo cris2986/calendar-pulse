@@ -28,7 +28,18 @@ export async function processIncoming(
     
     // 3. Extract keywords and generate hash
     const keywords = extractKeywords(content);
-    const summary = content.slice(0, 100); // First 100 chars as summary
+    // Extract a better summary: remove date/time patterns and trim
+    let summary = content
+      .replace(/\b\d{1,2}:\d{2}\b/g, '') // Remove times
+      .replace(/\b\d{1,2}[\/\-]\d{1,2}\b/g, '') // Remove dates
+      .replace(/\b(hoy|mañana|pasado mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo)\b/gi, '')
+      .trim()
+      .slice(0, 100);
+    
+    if (!summary) {
+      summary = content.slice(0, 100); // Fallback to first 100 chars
+    }
+    
     const semanticHash = await generateSemanticHash(
       parsed.detected_start,
       parsed.has_time,
