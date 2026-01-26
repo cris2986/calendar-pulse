@@ -1,15 +1,4 @@
-import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Calendar, AlertCircle, CheckCircle, Clock, Upload, Clipboard, Settings as SettingsIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { db, initializeSettings, autopurge } from "@/db/database";
 import { processIncoming } from "@/features/ingest/processIncoming";
@@ -19,13 +8,14 @@ import { requestNotificationPermission, checkForLeaksAndNotify } from "@/feature
 import { PotentialEvent, Settings } from "@/core/types";
 import { matchAgainstCalendar } from "@/core/matcher";
 import { deriveStatus } from "@/core/stateMachine";
-import { EventCard } from "@/components/EventCard";
+import "../styles/home.css";
 
 export default function Landing() {
   const [events, setEvents] = useState<PotentialEvent[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [icsFile, setIcsFile] = useState<File | null>(null);
 
   useEffect(() => {
     initializeApp().catch(error => {
@@ -42,7 +32,6 @@ export default function Landing() {
       await loadSettings();
       await requestNotificationPermission();
       
-      // Check for leaks on load
       const allEvents = await db.potentialEvents.toArray();
       checkForLeaksAndNotify(allEvents);
     } catch (error) {
@@ -72,7 +61,7 @@ export default function Landing() {
     }
   }
 
-  async function handlePaste() {
+  async function handleProcessText() {
     if (!inputText.trim()) {
       toast.error("Por favor ingresa texto");
       return;
@@ -91,7 +80,7 @@ export default function Landing() {
     setLoading(false);
   }
 
-  async function handleClipboard() {
+  async function handlePaste() {
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
@@ -103,23 +92,31 @@ export default function Landing() {
     }
   }
 
-  async function handleICSUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePickIcsFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      setIcsFile(file);
+      toast.success("Archivo seleccionado: " + file.name);
+    }
+  }
+
+  async function handleImportIcs() {
+    if (!icsFile) {
+      toast.error("Selecciona un archivo .ics primero");
+      return;
+    }
     
     setLoading(true);
     try {
-      const content = await file.text();
+      const content = await icsFile.text();
       const parsedEvents = await parseICSFile(content);
       
-      // Save to database
       await db.calendarEvents.bulkAdd(parsedEvents);
-      
-      // Recalculate all event statuses
       await recalculateAllStatuses();
       
       toast.success(`${parsedEvents.length} eventos importados`);
       await loadEvents();
+      setIcsFile(null);
     } catch (error) {
       toast.error("Error al importar ICS");
     }
@@ -145,220 +142,98 @@ export default function Landing() {
     }
   }
 
-  async function handleMarkCovered(eventId: number) {
-    await db.potentialEvents.update(eventId, {
-      status: 'covered',
-      updated_at: new Date()
-    });
-    toast.success("Marcado como cubierto");
-    await loadEvents();
-  }
-
-  async function handleDiscard(eventId: number) {
-    await db.potentialEvents.update(eventId, {
-      status: 'discarded',
-      updated_at: new Date()
-    });
-    toast.success("Descartado");
-    await loadEvents();
-  }
-
-  async function handleDownloadICS(event: PotentialEvent) {
-    downloadICS(event);
-    toast.success("Archivo ICS descargado");
-  }
-
-  async function updateSettings(updates: Partial<Settings>) {
-    await db.settings.update(1, updates);
-    await loadSettings();
-    await recalculateAllStatuses();
-    await loadEvents();
-    toast.success("Configuración actualizada");
-  }
-
   const leaks = events.filter(e => e.status === 'leak');
   const pending = events.filter(e => e.status === 'pending');
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900"
-    >
-      {/* Header */}
-      <header className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Event Auditor</h1>
-              <p className="text-sm text-muted-foreground">Auditor de compromisos no agendados</p>
-            </div>
+    <div className="ea-page">
+      <header className="ea-header">
+        <div className="ea-header__left">
+          <div className="ea-appmark" aria-hidden />
+          <div>
+            <div className="ea-title">Event Auditor</div>
+            <div className="ea-subtitle">Auditor de compromisos no agendados</div>
           </div>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <SettingsIcon className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Configuración</DialogTitle>
-                <DialogDescription>Ajusta el comportamiento del auditor</DialogDescription>
-              </DialogHeader>
-              
-              {settings && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Ventana de detección</Label>
-                    <Select
-                      value={String(settings.window_hours)}
-                      onValueChange={(v) => updateSettings({ window_hours: Number(v) as 24 | 48 })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="24">24 horas</SelectItem>
-                        <SelectItem value="48">48 horas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Retención de datos</Label>
-                    <Select
-                      value={String(settings.retention_days)}
-                      onValueChange={(v) => updateSettings({ retention_days: Number(v) as 7 | 30 | 90 })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="7">7 días</SelectItem>
-                        <SelectItem value="30">30 días</SelectItem>
-                        <SelectItem value="90">90 días</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label>Notificaciones</Label>
-                    <Switch
-                      checked={settings.notifications_enabled}
-                      onCheckedChange={(checked) => updateSettings({ notifications_enabled: checked })}
-                    />
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+        </div>
+        <div className="ea-header__right">
+          <button className="ea-iconbtn" aria-label="Calendario" type="button">
+            📅
+          </button>
+          <button className="ea-iconbtn" aria-label="Ajustes" type="button">
+            ⚙️
+          </button>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Input Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Ingresar compromiso</CardTitle>
-            <CardDescription>Pega o escribe texto con fecha/hora para detectar compromisos</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Ej: mañana a las 19:00 dentista&#10;lunes 10:30 reunión con equipo&#10;15/02 pago colegio"
+      <main className="ea-content">
+        <section className="ea-card">
+          <div className="ea-card__head">
+            <div className="ea-card__title">Ingresar compromiso</div>
+            <div className="ea-card__hint">Pega o escribe texto con fecha/hora.</div>
+          </div>
+          <label className="ea-field">
+            <span className="ea-label">Texto</span>
+            <textarea
+              className="ea-textarea"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              placeholder={`Ej:\nmañana 19:00 dentista\nlunes 10:30 reunión`}
               rows={4}
-              className="resize-none"
+              disabled={loading}
             />
-            
-            <div className="flex gap-2">
-              <Button onClick={handlePaste} disabled={loading} className="flex-1">
-                <Clipboard className="h-4 w-4 mr-2" />
-                Procesar texto
-              </Button>
-              <Button onClick={handleClipboard} variant="outline">
-                <Clipboard className="h-4 w-4 mr-2" />
-                Pegar
-              </Button>
-              <div className="relative">
-                <input
-                  type="file"
-                  accept=".ics"
-                  onChange={handleICSUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  disabled={loading}
-                />
-                <Button variant="outline">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importar ICS
-                </Button>
-              </div>
+          </label>
+          <div className="ea-row">
+            <button className="ea-btn ea-btn--primary" onClick={handleProcessText} type="button" disabled={loading}>
+              Procesar
+            </button>
+            <button className="ea-btn ea-btn--ghost" onClick={handlePaste} type="button" disabled={loading}>
+              Pegar
+            </button>
+          </div>
+        </section>
+
+        <section className="ea-card">
+          <div className="ea-card__head">
+            <div className="ea-card__title">Calendario objetivo</div>
+            <div className="ea-card__hint">Importa un archivo .ics para comparar.</div>
+          </div>
+          <div className="ea-row ea-row--between">
+            <label className="ea-file">
+              <input 
+                className="ea-file__input" 
+                type="file" 
+                accept=".ics,text/calendar" 
+                onChange={handlePickIcsFile}
+                disabled={loading}
+              />
+              <span className="ea-btn ea-btn--ghost">
+                {icsFile ? icsFile.name.slice(0, 20) : "Seleccionar archivo"}
+              </span>
+            </label>
+            <button className="ea-btn ea-btn--primary" onClick={handleImportIcs} type="button" disabled={loading || !icsFile}>
+              Importar ICS
+            </button>
+          </div>
+        </section>
+
+        <section className="ea-card">
+          <div className="ea-row ea-row--between ea-stack-sm">
+            <div className="ea-card__title">Bandeja</div>
+            <div className="ea-badges">
+              <span className="ea-badge ea-badge--danger">Fugas {leaks.length}</span>
+              <span className="ea-badge">Pendientes {pending.length}</span>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Events List */}
-        <Tabs defaultValue="leaks" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="leaks" className="relative">
-              Fugas
-              {leaks.length > 0 && (
-                <Badge variant="destructive" className="ml-2">{leaks.length}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              Pendientes
-              {pending.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{pending.length}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="leaks" className="space-y-4">
-            {leaks.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                  <p>No hay compromisos sin agendar próximos</p>
-                </CardContent>
-              </Card>
-            ) : (
-              leaks.map(event => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onMarkCovered={handleMarkCovered}
-                  onDiscard={handleDiscard}
-                  onDownloadICS={handleDownloadICS}
-                />
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="pending" className="space-y-4">
-            {pending.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-4" />
-                  <p>No hay compromisos pendientes de verificar</p>
-                </CardContent>
-              </Card>
-            ) : (
-              pending.map(event => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onMarkCovered={handleMarkCovered}
-                  onDiscard={handleDiscard}
-                  onDownloadICS={handleDownloadICS}
-                />
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </motion.div>
+          </div>
+          <div className="ea-empty">
+            <div className="ea-empty__icon">✅</div>
+            <div className="ea-empty__text">
+              {leaks.length === 0 && pending.length === 0 
+                ? "No hay compromisos sin agendar próximos" 
+                : `${leaks.length} fugas y ${pending.length} pendientes detectados`}
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
