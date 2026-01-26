@@ -136,11 +136,13 @@
 /* Mobile: stack actions vertically */
 @media (max-width: 480px) {
   .ea-event__actions {
-    flex-direction: column;
+    flex-direction: column !important;
+    gap: 8px;
   }
 
   .ea-event__actions .ea-btn {
-    width: 100%;
+    width: 100% !important;
+    flex: none !important;
   }
 }
 
@@ -149,10 +151,18 @@
   .ea-event__actions {
     flex-direction: row;
     flex-wrap: wrap;
+    gap: 10px;
   }
 
   .ea-event__actions .ea-btn {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 110px;
+  }
+}
+
+/* Desktop: optimize button sizing */
+@media (min-width: 1025px) {
+  .ea-event__actions .ea-btn {
     min-width: 120px;
   }
 }
@@ -166,11 +176,21 @@
 
 body {
   overflow-x: hidden;
+  width: 100%;
 }
 
 .ea-page {
   width: 100%;
+  min-height: 100vh;
   overflow-x: hidden;
+}
+
+.ea-content,
+.ea-card,
+.ea-modal,
+.ea-event {
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 /* ============================================
