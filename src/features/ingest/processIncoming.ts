@@ -57,7 +57,11 @@ export async function processIncoming(
       .first();
     
     if (existing) {
-      return { success: true, eventId: existing.id }; // Duplicate, skip
+      // Update the existing event's updated_at timestamp
+      await db.potentialEvents.update(existing.id!, {
+        updated_at: new Date()
+      });
+      return { success: true, eventId: existing.id }; // Duplicate, updated timestamp
     }
     
     // 5. Get calendar events for matching
@@ -118,6 +122,8 @@ export async function processIncoming(
       created_at: new Date(),
       updated_at: new Date()
     });
+    
+    console.log('✅ Potential event created:', { eventId, summary, status, detected_start: parsed.detected_start });
     
     return { success: true, eventId };
   } catch (error) {

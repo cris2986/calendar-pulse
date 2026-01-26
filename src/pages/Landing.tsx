@@ -50,8 +50,10 @@ export default function Landing() {
   async function loadEvents() {
     try {
       const allEvents = await db.potentialEvents
-        .orderBy('detected_start')
+        .orderBy('updated_at')
+        .reverse()
         .toArray();
+      console.log('📋 Loaded events:', allEvents.length, allEvents);
       setEvents(allEvents);
     } catch (error) {
       console.error('Failed to load events:', error);
