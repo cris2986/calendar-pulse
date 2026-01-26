@@ -42,13 +42,13 @@ export function parseDateTimeES(text: string, referenceDate?: Date): ParsedDateT
   
   // Try dd/mm or dd-mm format
   if (!detectedDate) {
-    const dateMatch = normalized.match(/\b(\d{1,2})[\\/\-](\d{1,2})\b/);
+    const dateMatch = normalized.match(/\b(\d{1,2})[\/\-](\d{1,2})\b/);
     if (dateMatch) {
       const day = parseInt(dateMatch[1]);
       const month = parseInt(dateMatch[2]) - 1;
-      detectedDate = new Date(now.getFullYear(), month, day);
+      detectedDate = new Date(now.getFullYear(), month, day, 0, 0, 0, 0);
       
-      // If date is in the past, advance to next year
+      // If date is in the past (comparing full timestamps), advance to next year
       if (detectedDate.getTime() < now.getTime()) {
         detectedDate.setFullYear(detectedDate.getFullYear() + 1);
       }

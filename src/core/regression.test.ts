@@ -17,7 +17,7 @@ describe('Regression Tests - User Phrases', () => {
   USER_PHRASES.forEach((testCase, index) => {
     describe(`Case ${index + 1}: ${testCase.description}`, () => {
       it('should parse correctly', () => {
-        const result = parseDateTimeES(testCase.input);
+        const result = parseDateTimeES(testCase.input, MOCK_NOW);
         
         if (testCase.expectedParsed) {
           expect(result).not.toBeNull();
