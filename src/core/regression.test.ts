@@ -7,8 +7,7 @@ import { PotentialEvent } from './types';
 
 describe('Regression Tests - User Phrases', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(MOCK_NOW);
+    vi.useFakeTimers({ now: MOCK_NOW });
   });
 
   afterEach(() => {

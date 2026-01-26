@@ -6,8 +6,7 @@ describe('parseDateTimeES', () => {
   const MOCK_NOW = new Date(2024, 0, 1, 10, 0, 0);
 
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(MOCK_NOW);
+    vi.useFakeTimers({ now: MOCK_NOW });
   });
 
   afterEach(() => {
