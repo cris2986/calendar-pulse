@@ -46,7 +46,7 @@ export async function processIncoming(
       content
     );
     
-    // 4. Check for duplicates
+    // 4. Check for duplicates and update if exists
     const existing = await db.potentialEvents
       .where('semantic_hash')
       .equals(semanticHash)
@@ -57,7 +57,11 @@ export async function processIncoming(
       .first();
     
     if (existing) {
-      return { success: true, eventId: existing.id }; // Duplicate, skip
+      // Update the existing event's timestamp to bring it to the top
+      await db.potentialEvents.update(existing.id!, {
+        updated_at: new Date()
+      });
+      return { success: true, eventId: existing.id }; // Duplicate, updated timestamp
     }
     
     // 5. Get calendar events for matching

@@ -8,14 +8,14 @@ export function deriveStatus(
   matchResult: MatchResult,
   windowHours: number
 ): Status {
+  // Check if covered first (regardless of time)
+  if (matchResult.matched) {
+    return 'covered';
+  }
+  
   // Check if expired
   if (potential.detected_start < now) {
     return 'expired';
-  }
-  
-  // Check if covered
-  if (matchResult.matched) {
-    return 'covered';
   }
   
   // Check if leak (within window and not low confidence)
@@ -25,7 +25,7 @@ export function deriveStatus(
     return 'leak';
   }
   
-  // Otherwise pending
+  // Otherwise pending (future events outside window)
   return 'pending';
 }
 
