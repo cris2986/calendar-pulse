@@ -20,10 +20,13 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  overflow-x: hidden;
 }
 
 .ea-page {
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .ea-header {
@@ -103,6 +106,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Desktop grid layout */
+@media (min-width: 769px) {
+  .ea-content.ea-content--grid {
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 24px;
+  }
 }
 
 .ea-card {
@@ -317,7 +331,17 @@ body {
 }
 
 .ea-event__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 10px;
+}
+
+@media (min-width: 481px) {
+  .ea-event__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
 
 /* Modals */
@@ -580,27 +604,78 @@ body {
   }
 }
 
-/* Tablet adjustments */
-@media (min-width: 641px) and (max-width: 1024px) {
+/* Tablet optimizations */
+@media (min-width: 481px) and (max-width: 768px) {
   .ea-content {
     max-width: 600px;
-    padding: 20px;
+    padding: 18px;
   }
 
-  .ea-modal {
-    max-width: 500px;
+  .ea-header {
+    padding: 13px 16px;
+  }
+}
+
+/* Enhanced responsive adjustments */
+@media (max-width: 480px) {
+  .ea-header {
+    padding: 10px 12px;
+  }
+
+  .ea-title {
+    font-size: 14px;
+  }
+
+  .ea-subtitle {
+    font-size: 10px;
+    max-width: 45vw;
+  }
+
+  .ea-iconbtn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .ea-content {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .ea-card {
+    padding: 12px;
+  }
+
+  .ea-btn {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+
+  .ea-row {
+    gap: 8px;
+  }
+
+  .ea-badge {
+    font-size: 10px;
+    padding: 4px 8px;
   }
 }
 
 /* Desktop enhancements */
 @media (min-width: 1025px) {
-  .ea-content {
-    max-width: 640px;
-    padding: 24px;
+  .ea-content.ea-content--grid {
+    max-width: 1280px;
+    gap: 24px;
+    padding: 32px;
   }
 
-  .ea-modal {
-    max-width: 480px;
+  .ea-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .ea-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
 
   .ea-btn:hover:not(:disabled) {
@@ -641,4 +716,29 @@ body {
   .ea-modal__content {
     max-height: calc(95vh - 60px);
   }
+}
+
+/* Modal responsive improvements */
+@media (max-width: 480px) {
+  .ea-modal {
+    max-width: 100%;
+    max-height: 95vh;
+    margin: 0;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .ea-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+}
+
+/* Prevent text overflow in all contexts */
+.ea-event__summary,
+.ea-card__title,
+.ea-label,
+.ea-list-item__top {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
