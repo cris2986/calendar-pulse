@@ -8,8 +8,8 @@ export function deriveStatus(
   matchResult: MatchResult,
   windowHours: number
 ): Status {
-  // Check if expired
-  if (potential.detected_start < now) {
+  // Check if expired (start time has passed)
+  if (potential.detected_start.getTime() <= now.getTime()) {
     return 'expired';
   }
   

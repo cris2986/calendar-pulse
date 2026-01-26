@@ -121,9 +121,13 @@ export function parseDateTimeES(text: string): ParsedDateTime | null {
 
 function getNextDayOfWeek(from: Date, targetDay: number): Date {
   const result = new Date(from);
-  const currentDay = result.getDay();
-  const daysUntilTarget = (targetDay - currentDay + 7) % 7;
-  result.setDate(result.getDate() + (daysUntilTarget === 0 ? 7 : daysUntilTarget));
   result.setHours(0, 0, 0, 0);
+  const currentDay = result.getDay();
+  let daysUntilTarget = (targetDay - currentDay + 7) % 7;
+  // If it's the same day, go to next week
+  if (daysUntilTarget === 0) {
+    daysUntilTarget = 7;
+  }
+  result.setDate(result.getDate() + daysUntilTarget);
   return result;
 }
