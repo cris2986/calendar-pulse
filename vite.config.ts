@@ -10,11 +10,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // PWA options would go here if using vite-plugin-pwa
-  // For now, we ensure no service worker interferes in dev
   server: {
-    headers: {
-      'Cache-Control': 'no-store',
-    },
+    host: true,
+    port: 5173,
   },
 });
