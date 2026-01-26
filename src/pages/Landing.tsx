@@ -314,7 +314,7 @@ export default function Landing() {
               </div>
             </div>
           ) : (
-            <div className="ea-list">
+            <>
               {leaks.map(event => (
                 <EventCard 
                   key={event.id} 
@@ -333,7 +333,7 @@ export default function Landing() {
                   onDownloadICS={downloadICS}
                 />
               ))}
-            </div>
+            </>
           )}
         </section>
       </main>
