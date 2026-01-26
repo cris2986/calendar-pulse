@@ -414,6 +414,34 @@ body {
   font-size: 12px;
 }
 
+.ea-debug-panel {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.2);
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.ea-debug-stat {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ea-debug-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ea-debug-value {
+  color: var(--primary);
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

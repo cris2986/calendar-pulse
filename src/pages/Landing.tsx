@@ -30,12 +30,24 @@ export default function Landing() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
+  // Debug stats
+  const [dbStats, setDbStats] = useState<{ totalCount: number; lastStatus: string | null }>({
+    totalCount: 0,
+    lastStatus: null
+  });
+
   useEffect(() => {
     initializeApp().catch(error => {
       console.error('Failed to initialize app:', error);
       toast.error('Error al inicializar la aplicación: ' + error.message);
     });
   }, []);
+
+  useEffect(() => {
+    if (debugMode) {
+      updateDebugStats();
+    }
+  }, [debugMode, events]);
 
   async function initializeApp() {
     try {
@@ -114,10 +126,32 @@ export default function Landing() {
     if (result.success) {
       toast.success("Compromiso procesado");
       setInputText("");
+      
+      // Update debug stats
+      if (debugMode) {
+        await updateDebugStats();
+      }
     } else {
       toast.error("Error al procesar: " + result.error);
     }
     setLoading(false);
+  }
+
+  async function updateDebugStats() {
+    try {
+      const totalCount = await db.potentialEvents.count();
+      const lastEvent = await db.potentialEvents
+        .orderBy('created_at')
+        .reverse()
+        .first();
+      
+      setDbStats({
+        totalCount,
+        lastStatus: lastEvent?.status || null
+      });
+    } catch (error) {
+      console.error('Failed to update debug stats:', error);
+    }
   }
 
   async function handlePaste() {
@@ -299,6 +333,19 @@ export default function Landing() {
               {debugMode && <span className="ea-badge">Total {allEvents.length}</span>}
             </div>
           </div>
+
+          {debugMode && (
+            <div className="ea-debug-panel">
+              <div className="ea-debug-stat">
+                <span className="ea-debug-label">DB Count:</span>
+                <span className="ea-debug-value">{dbStats.totalCount}</span>
+              </div>
+              <div className="ea-debug-stat">
+                <span className="ea-debug-label">Last Status:</span>
+                <span className="ea-debug-value">{dbStats.lastStatus || 'N/A'}</span>
+              </div>
+            </div>
+          )}
           
           {displayEvents.length === 0 ? (
             <div className="ea-empty">
