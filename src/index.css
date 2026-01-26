@@ -3,9 +3,6 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
-/* Import responsive system */
-@import "../styles/responsive.css";
-
 /* DO NOT CHANGE */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
