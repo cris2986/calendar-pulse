@@ -67,7 +67,7 @@ export function EventCard({
           <span className={badgeClassConfidence(event.confidence)}>{confLabel(event.confidence)}</span>
         </div>
       </div>
-      <div className="ea-row ea-event__actions">
+      <div className="ea-row ea-event__actions ea-event__actions--responsive">
         <button className="ea-btn ea-btn--ghost" type="button" onClick={() => onMarkCovered(event.id!)}>
           Marcar cubierto
         </button>

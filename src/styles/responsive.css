@@ -1,0 +1,246 @@
+/* ============================================
+   RESPONSIVE SYSTEM - Calendar Pulse PWA
+   Mobile-first approach with strict breakpoints
+   ============================================ */
+
+/* Base container system */
+.ea-responsive-container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Breakpoints */
+/* Mobile: 0-480px (default, mobile-first) */
+/* Tablet: 481-768px */
+/* Desktop Small: 769-1024px */
+/* Desktop Large: 1025+ */
+
+/* ============================================
+   SPACING SCALE (consistent across breakpoints)
+   ============================================ */
+:root {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+}
+
+/* ============================================
+   FLUID TYPOGRAPHY
+   ============================================ */
+.ea-title {
+  font-size: clamp(14px, 3vw, 18px);
+}
+
+.ea-subtitle {
+  font-size: clamp(11px, 2.5vw, 13px);
+}
+
+.ea-card__title {
+  font-size: clamp(13px, 2.8vw, 15px);
+}
+
+.ea-card__hint {
+  font-size: clamp(11px, 2.2vw, 12px);
+}
+
+/* ============================================
+   DESKTOP GRID LAYOUT (Home page)
+   ============================================ */
+@media (min-width: 1025px) {
+  .ea-content--desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xl);
+    max-width: 1280px;
+  }
+
+  .ea-content--desktop-grid .ea-column-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .ea-content--desktop-grid .ea-column-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+/* ============================================
+   TABLET ADJUSTMENTS (481-768px)
+   ============================================ */
+@media (min-width: 481px) and (max-width: 768px) {
+  .ea-content {
+    max-width: 600px;
+    padding: var(--spacing-lg);
+  }
+
+  .ea-header {
+    padding: 14px var(--spacing-lg);
+  }
+
+  .ea-card {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* ============================================
+   DESKTOP SMALL (769-1024px)
+   ============================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ea-content {
+    max-width: 720px;
+    padding: var(--spacing-xl);
+  }
+
+  .ea-header {
+    padding: 16px var(--spacing-xl);
+  }
+}
+
+/* ============================================
+   DESKTOP LARGE (1025+)
+   ============================================ */
+@media (min-width: 1025px) {
+  .ea-content {
+    max-width: 1280px;
+    padding: var(--spacing-2xl);
+  }
+
+  .ea-header {
+    padding: 18px var(--spacing-2xl);
+  }
+
+  /* Hover effects only on desktop */
+  .ea-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+  }
+
+  .ea-iconbtn:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+  }
+}
+
+/* ============================================
+   EVENT CARD RESPONSIVE
+   ============================================ */
+/* Mobile: stack actions vertically */
+@media (max-width: 480px) {
+  .ea-event__actions {
+    flex-direction: column;
+  }
+
+  .ea-event__actions .ea-btn {
+    width: 100%;
+  }
+}
+
+/* Tablet and up: actions in row */
+@media (min-width: 481px) {
+  .ea-event__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .ea-event__actions .ea-btn {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+/* ============================================
+   PREVENT HORIZONTAL OVERFLOW
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.ea-page {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   TOUCH TARGETS (Mobile accessibility)
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  .ea-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+
+  .ea-iconbtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  .ea-textarea,
+  .ea-select,
+  input {
+    font-size: 16px;
+  }
+}
+
+/* ============================================
+   LANDSCAPE MOBILE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 896px) and (orientation: landscape) {
+  .ea-modal {
+    max-height: 95vh;
+  }
+
+  .ea-modal__content {
+    max-height: calc(95vh - 60px);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.ea-hide-mobile {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .ea-hide-mobile {
+    display: block;
+  }
+}
+
+.ea-hide-desktop {
+  display: block;
+}
+
+@media (min-width: 769px) {
+  .ea-hide-desktop {
+    display: none;
+  }
+}
+
+/* Responsive text truncation */
+.ea-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ea-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

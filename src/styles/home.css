@@ -1,3 +1,8 @@
+@import './responsive.css';
+
+/* Import responsive system */
+@import './responsive.css';
+
 :root {
   --bg: #0b0c10;
   --card: #12141b;
