@@ -1,4 +1,4 @@
-// ICS file parser
+// ICS file parser - Enhanced for robustness
 
 import { CalendarEvent } from '@/core/types';
 import { extractKeywords } from '@/core/normalize';
@@ -9,13 +9,12 @@ export async function parseICSFile(fileContent: string): Promise<CalendarEvent[]
   const lines = fileContent.split(/\r?\n/);
   
   let currentEvent: Partial<CalendarEvent> | null = null;
-  let currentField = '';
   
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
     
-    // Handle line continuation
-    while (i + 1 < lines.length && lines[i + 1].startsWith(' ')) {
+    // Handle line continuation (lines starting with space or tab)
+    while (i + 1 < lines.length && /^[ \t]/.test(lines[i + 1])) {
       i++;
       line += lines[i].trim();
     }
@@ -42,20 +41,24 @@ export async function parseICSFile(fileContent: string): Promise<CalendarEvent[]
     } else if (currentEvent) {
       const colonIndex = line.indexOf(':');
       if (colonIndex > 0) {
-        const field = line.substring(0, colonIndex);
+        const fieldPart = line.substring(0, colonIndex);
         const value = line.substring(colonIndex + 1);
         
-        if (field.startsWith('SUMMARY')) {
-          currentEvent.summary = value;
-        } else if (field.startsWith('DTSTART')) {
-          const isAllDay = field.includes('VALUE=DATE') && !field.includes('DATE-TIME');
+        // Extract field name (before any semicolon parameters)
+        const field = fieldPart.split(';')[0];
+        
+        if (field === 'SUMMARY') {
+          currentEvent.summary = unescapeICSValue(value);
+        } else if (field === 'DTSTART') {
+          const isAllDay = fieldPart.includes('VALUE=DATE') && !fieldPart.includes('DATE-TIME');
           currentEvent.start = parseICSDate(value);
           currentEvent.is_all_day = isAllDay;
-        } else if (field.startsWith('DTEND')) {
+        } else if (field === 'DTEND') {
           currentEvent.end = parseICSDate(value);
-        } else if (field.startsWith('UID')) {
+        } else if (field === 'UID') {
           currentEvent.external_id = value;
         }
+        // Ignore other fields like LOCATION, DESCRIPTION for now
       }
     }
   }
@@ -64,17 +67,16 @@ export async function parseICSFile(fileContent: string): Promise<CalendarEvent[]
 }
 
 function parseICSDate(dateStr: string): Date {
-  // Handle both DATE and DATE-TIME formats
-  // YYYYMMDD or YYYYMMDDTHHmmssZ
-  const cleaned = dateStr.replace(/[-:]/g, '');
+  // Remove any timezone identifiers (Z, +00:00, etc.) for simplicity
+  const cleaned = dateStr.replace(/[-:]/g, '').replace(/Z$/, '');
   
   if (cleaned.length === 8) {
     // DATE format: YYYYMMDD
     const year = parseInt(cleaned.substring(0, 4));
     const month = parseInt(cleaned.substring(4, 6)) - 1;
     const day = parseInt(cleaned.substring(6, 8));
-    return new Date(year, month, day);
-  } else {
+    return new Date(year, month, day, 0, 0, 0, 0);
+  } else if (cleaned.length >= 15) {
     // DATE-TIME format: YYYYMMDDTHHmmss
     const year = parseInt(cleaned.substring(0, 4));
     const month = parseInt(cleaned.substring(4, 6)) - 1;
@@ -84,4 +86,15 @@ function parseICSDate(dateStr: string): Date {
     const second = parseInt(cleaned.substring(13, 15));
     return new Date(year, month, day, hour, minute, second);
   }
+  
+  // Fallback: try native Date parsing
+  return new Date(dateStr);
+}
+
+function unescapeICSValue(value: string): string {
+  return value
+    .replace(/\\n/g, '\n')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\\\/g, '\\');
 }

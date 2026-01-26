@@ -1,10 +1,11 @@
-// ICS file export
+// ICS file export - Enhanced for compatibility
 
 import { PotentialEvent } from '@/core/types';
 
 export function createICSForEvent(event: PotentialEvent): string {
   const now = new Date();
-  const dtStamp = formatICSDate(now);
+  const dtStamp = formatICSDateTime(now);
+  
   const dtStart = event.has_time 
     ? formatICSDateTime(event.detected_start)
     : formatICSDate(event.detected_start);
@@ -16,17 +17,22 @@ export function createICSForEvent(event: PotentialEvent): string {
         : formatICSDate(new Date(event.detected_start.getTime() + 24 * 60 * 60 * 1000)));
   
   const uid = `${event.id}-${Date.now()}@eventauditor.local`;
+  const summary = escapeICSValue(event.summary);
   
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Event Auditor//PWA//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${dtStamp}`,
     event.has_time ? `DTSTART:${dtStart}` : `DTSTART;VALUE=DATE:${dtStart}`,
     event.has_time ? `DTEND:${dtEnd}` : `DTEND;VALUE=DATE:${dtEnd}`,
-    `SUMMARY:${event.summary}`,
+    `SUMMARY:${summary}`,
+    `STATUS:CONFIRMED`,
+    `TRANSP:OPAQUE`,
     'END:VEVENT',
     'END:VCALENDAR'
   ].join('\r\n');
@@ -61,4 +67,12 @@ function formatICSDateTime(date: Date): string {
   const minute = String(date.getMinutes()).padStart(2, '0');
   const second = String(date.getSeconds()).padStart(2, '0');
   return `${dateStr}T${hour}${minute}${second}`;
+}
+
+function escapeICSValue(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
 }
