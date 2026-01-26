@@ -29,6 +29,7 @@ export default function Landing() {
   // Modals state
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showDataManagement, setShowDataManagement] = useState(false);
 
   // Debug stats
   const [dbStats, setDbStats] = useState<{ totalCount: number; lastStatus: string | null }>({
@@ -226,6 +227,110 @@ export default function Landing() {
     toast.success("Evento descartado");
   }
 
+  async function handleResetAllData() {
+    if (!confirm("⚠️ ADVERTENCIA: Esto borrará TODOS los datos locales (eventos, calendario, configuración). ¿Estás seguro?")) return;
+    
+    try {
+      await db.potentialEvents.clear();
+      await db.rawRecords.clear();
+      await db.calendarEvents.clear();
+      await initializeSettings(); // Reset to defaults
+      await loadSettings();
+      await loadCalendarEvents();
+      toast.success("Todos los datos han sido eliminados");
+    } catch (error) {
+      toast.error("Error al resetear datos: " + error);
+    }
+  }
+
+  async function handleExportData() {
+    try {
+      const potentialEvents = await db.potentialEvents.toArray();
+      const calendarEvents = await db.calendarEvents.toArray();
+      const rawRecords = await db.rawRecords.toArray();
+      const settings = await db.settings.get(1);
+      
+      const exportData = {
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        data: {
+          potentialEvents,
+          calendarEvents,
+          rawRecords,
+          settings
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `event-auditor-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Datos exportados correctamente");
+    } catch (error) {
+      toast.error("Error al exportar datos: " + error);
+    }
+  }
+
+  async function handleImportData(file: File) {
+    try {
+      const content = await file.text();
+      const importData = JSON.parse(content);
+      
+      if (!importData.version || !importData.data) {
+        throw new Error("Formato de archivo inválido");
+      }
+      
+      // Clear existing data
+      await db.potentialEvents.clear();
+      await db.rawRecords.clear();
+      await db.calendarEvents.clear();
+      
+      // Import data
+      if (importData.data.potentialEvents?.length > 0) {
+        await db.potentialEvents.bulkAdd(importData.data.potentialEvents.map((e: any) => ({
+          ...e,
+          detected_start: new Date(e.detected_start),
+          detected_end: e.detected_end ? new Date(e.detected_end) : undefined,
+          created_at: new Date(e.created_at),
+          updated_at: new Date(e.updated_at)
+        })));
+      }
+      
+      if (importData.data.calendarEvents?.length > 0) {
+        await db.calendarEvents.bulkAdd(importData.data.calendarEvents.map((e: any) => ({
+          ...e,
+          start: new Date(e.start),
+          end: e.end ? new Date(e.end) : undefined,
+          imported_at: new Date(e.imported_at)
+        })));
+      }
+      
+      if (importData.data.rawRecords?.length > 0) {
+        await db.rawRecords.bulkAdd(importData.data.rawRecords.map((r: any) => ({
+          ...r,
+          created_at: new Date(r.created_at)
+        })));
+      }
+      
+      if (importData.data.settings) {
+        await db.settings.put({ ...importData.data.settings, id: 1 });
+      }
+      
+      await loadSettings();
+      await loadCalendarEvents();
+      
+      toast.success(`Datos importados: ${importData.data.potentialEvents?.length || 0} eventos`);
+    } catch (error) {
+      toast.error("Error al importar datos: " + error);
+    }
+  }
+
   // Display events based on debug mode
   const displayEvents = debugMode ? allEvents : [...leaks, ...pending];
 
@@ -259,6 +364,14 @@ export default function Landing() {
             onClick={() => setShowCalendar(true)}
           >
             📅
+          </button>
+          <button 
+            className="ea-iconbtn" 
+            aria-label="Gestión de datos" 
+            type="button"
+            onClick={() => setShowDataManagement(true)}
+          >
+            💾
           </button>
           <button 
             className="ea-iconbtn" 
@@ -467,6 +580,64 @@ export default function Landing() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Data Management Modal */}
+      {showDataManagement && (
+        <div className="ea-modal-backdrop" onClick={() => setShowDataManagement(false)}>
+          <div className="ea-modal" onClick={e => e.stopPropagation()}>
+            <div className="ea-modal__header">
+              <div className="ea-modal__title">Gestión de datos</div>
+              <button className="ea-modal__close" onClick={() => setShowDataManagement(false)}>×</button>
+            </div>
+            <div className="ea-modal__content">
+              <div className="ea-field">
+                <span className="ea-label">Exportar datos</span>
+                <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
+                  Descarga una copia de seguridad de todos tus datos locales
+                </div>
+                <button className="ea-btn ea-btn--primary" onClick={handleExportData}>
+                  📥 Exportar a JSON
+                </button>
+              </div>
+
+              <div className="ea-field">
+                <span className="ea-label">Importar datos</span>
+                <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
+                  Restaura datos desde un archivo de respaldo
+                </div>
+                <label className="ea-file">
+                  <input 
+                    className="ea-file__input" 
+                    type="file" 
+                    accept=".json,application/json"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImportData(file);
+                    }}
+                  />
+                  <span className="ea-btn ea-btn--primary">
+                    📤 Seleccionar archivo JSON
+                  </span>
+                </label>
+              </div>
+
+              <div className="ea-field" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
+                <span className="ea-label" style={{ color: 'var(--danger)' }}>Zona de peligro</span>
+                <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
+                  Elimina permanentemente todos los datos locales
+                </div>
+                <button 
+                  className="ea-btn ea-btn--ghost" 
+                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                  onClick={handleResetAllData}
+                >
+                  🗑️ Resetear todos los datos
+                </button>
+              </div>
             </div>
           </div>
         </div>
