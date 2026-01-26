@@ -22,33 +22,13 @@ export default function Landing() {
   // Modals state
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  
-  // Debug counter
-  const [totalEventsCount, setTotalEventsCount] = useState(0);
 
   useEffect(() => {
     initializeApp().catch(error => {
       console.error('Failed to initialize app:', error);
       toast.error('Error al inicializar la aplicación: ' + error.message);
     });
-    
-    // Set up reactive polling for events (simple approach)
-    const interval = setInterval(() => {
-      loadEvents();
-      updateDebugCount();
-    }, 1000);
-    
-    return () => clearInterval(interval);
   }, []);
-  
-  async function updateDebugCount() {
-    try {
-      const count = await db.potentialEvents.count();
-      setTotalEventsCount(count);
-    } catch (error) {
-      console.error('Failed to update debug count:', error);
-    }
-  }
 
   async function initializeApp() {
     try {
@@ -69,10 +49,8 @@ export default function Landing() {
 
   async function loadEvents() {
     try {
-      // Load ALL events and sort by updatedAt DESC for deduplication visibility
       const allEvents = await db.potentialEvents
-        .orderBy('updated_at')
-        .reverse()
+        .orderBy('detected_start')
         .toArray();
       setEvents(allEvents);
     } catch (error) {
@@ -226,14 +204,8 @@ export default function Landing() {
     toast.success("Evento descartado");
   }
 
-  // Show leak and pending events
   const leaks = events.filter(e => e.status === 'leak');
   const pending = events.filter(e => e.status === 'pending');
-  
-  // Debug: show all events temporarily to diagnose
-  const allVisibleEvents = events.filter(e => 
-    e.status === 'leak' || e.status === 'pending' || e.status === 'covered' || e.status === 'expired'
-  );
 
   return (
     <div className="ea-page">
@@ -322,27 +294,35 @@ export default function Landing() {
             <div className="ea-badges">
               <span className="ea-badge ea-badge--danger">Fugas {leaks.length}</span>
               <span className="ea-badge">Pendientes {pending.length}</span>
-              <span className="ea-badge ea-badge--muted" title="Debug: Total events in DB">Total: {totalEventsCount}</span>
             </div>
           </div>
           
-          {totalEventsCount === 0 ? (
+          {events.length === 0 ? (
             <div className="ea-empty">
               <div className="ea-empty__icon">📭</div>
               <div className="ea-empty__text">
                 No hay eventos procesados aún
               </div>
             </div>
-          ) : allVisibleEvents.length === 0 ? (
+          ) : leaks.length === 0 && pending.length === 0 ? (
             <div className="ea-empty">
               <div className="ea-empty__icon">✅</div>
               <div className="ea-empty__text">
-                Todos los compromisos están cubiertos o descartados
+                No hay compromisos sin agendar próximos
               </div>
             </div>
           ) : (
             <div className="ea-list">
-              {allVisibleEvents.map(event => (
+              {leaks.map(event => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  onMarkCovered={handleMarkCovered}
+                  onDiscard={handleDiscard}
+                  onDownloadICS={downloadICS}
+                />
+              ))}
+              {pending.map(event => (
                 <EventCard 
                   key={event.id} 
                   event={event} 
