@@ -73,7 +73,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 65vw;
+  max-width: 45vw;
 }
 
 .ea-header__right {
@@ -487,6 +487,7 @@ body {
 
   .ea-header__left {
     gap: 8px;
+    max-width: 60%;
   }
 
   .ea-appmark {
@@ -500,7 +501,7 @@ body {
 
   .ea-subtitle {
     font-size: 11px;
-    max-width: 50vw;
+    max-width: 100%;
   }
 
   .ea-header__right {
