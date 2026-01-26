@@ -7,8 +7,36 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calendar Pulse</title>
+  
+  <!-- Diagnostic overlay for boot issues -->
+  <script>
+    (function () {
+      const el = document.createElement("div");
+      el.id = "__boot";
+      el.style.cssText =
+        "position:fixed;inset:0;z-index:999999;background:#fff;color:#000;padding:12px;font:14px system-ui;white-space:pre-wrap;";
+      el.textContent = "HTML BOOT OK\n";
+      document.addEventListener("DOMContentLoaded", () => {
+        el.textContent += "DOM READY\n";
+        // Auto-hide after 2 seconds if no errors
+        setTimeout(() => {
+          if (!el.textContent.includes("ERROR") && !el.textContent.includes("UNHANDLED")) {
+            el.style.display = "none";
+          }
+        }, 2000);
+      });
+      window.addEventListener("error", (e) => {
+        el.textContent += "WINDOW ERROR: " + (e?.message || e) + "\n";
+        el.style.background = "#fee";
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        el.textContent += "UNHANDLED: " + (e?.reason?.message || e?.reason || e) + "\n";
+        el.style.background = "#fee";
+      });
+      document.documentElement.appendChild(el);
+    })();
+  </script>
 </head>
-
 
 <body>
   <div id="root"></div>
@@ -16,4 +44,3 @@
 </body>
 
 </html>
-

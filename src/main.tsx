@@ -6,8 +6,13 @@ import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
 import "./types/global.d.ts";
+
+// Boot diagnostic
+const boot = document.getElementById("__boot");
+if (boot) boot.textContent += "MAIN TSX LOADED\n";
 
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
@@ -23,9 +28,20 @@ function RouteLoading() {
   );
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-
+// Initialize Convex client with error handling
+let convex: ConvexReactClient | null = null;
+try {
+  const convexUrl = import.meta.env.VITE_CONVEX_URL;
+  if (convexUrl && convexUrl !== "undefined") {
+    convex = new ConvexReactClient(convexUrl);
+    if (boot) boot.textContent += "CONVEX CLIENT INITIALIZED\n";
+  } else {
+    if (boot) boot.textContent += "CONVEX SKIPPED (no URL)\n";
+  }
+} catch (error) {
+  console.warn("Convex initialization failed, continuing without it:", error);
+  if (boot) boot.textContent += "CONVEX INIT FAILED (continuing)\n";
+}
 
 function RouteSyncer() {
   const location = useLocation();
@@ -50,24 +66,44 @@ function RouteSyncer() {
   return null;
 }
 
+// App component with layered mounting
+function App() {
+  if (boot) boot.textContent += "APP COMPONENT MOUNTED\n";
+  
+  return (
+    <BrowserRouter>
+      <RouteSyncer />
+      <Suspense fallback={<RouteLoading />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/auth" element={<AuthPage redirectAfterAuth="/" />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
 
+// Render with error boundary and optional Convex
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <VlyToolbar />
-    <InstrumentationProvider>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<AuthPage redirectAfterAuth="/" />} /> {/* TODO: change redirect after auth to correct page */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        <Toaster />
-      </ConvexAuthProvider>
-    </InstrumentationProvider>
+    <ErrorBoundary>
+      <VlyToolbar />
+      <InstrumentationProvider>
+        {convex ? (
+          <ConvexAuthProvider client={convex}>
+            <App />
+            <Toaster />
+          </ConvexAuthProvider>
+        ) : (
+          <>
+            <App />
+            <Toaster />
+          </>
+        )}
+      </InstrumentationProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );
+
+if (boot) boot.textContent += "REACT RENDER CALLED\n";
