@@ -1,18 +1,18 @@
-# Project Name
-
-<!-- AI Agent: Update this section with the actual project name and purpose -->
+# Event Auditor PWA
 
 ## Overview
 
-<!-- AI Agent: Provide a brief description of what this application does -->
+Event Auditor is a privacy-focused Progressive Web App that helps you identify commitments that haven't been scheduled in your calendar. Simply paste text containing dates and times, and the app will detect potential events, compare them against your calendar, and alert you about unscheduled commitments.
 
 ## Features
 
-<!-- AI Agent: List the main features of the application -->
-
-- Feature 1
-- Feature 2
-- Feature 3
+- **Local-First**: All data stored in IndexedDB, no backend required
+- **Smart Date/Time Parser**: Detects Spanish dates and times (hoy, mañana, lunes, 15/02, etc.)
+- **Calendar Integration**: Import ICS files to compare against your events
+- **Leak Detection**: Identifies unscheduled commitments within 24-48 hours
+- **Export to Calendar**: Download ICS files for any detected event
+- **Web Notifications**: Get alerts for upcoming unscheduled commitments
+- **Privacy by Design**: No passive reading of apps, only user-provided content
 
 ## Tech Stack
 
