@@ -52,6 +52,7 @@ export default function Landing() {
       const allEvents = await db.potentialEvents
         .orderBy('detected_start')
         .toArray();
+      console.log('Loading events:', allEvents.length, 'events found');
       setEvents(allEvents);
     } catch (error) {
       console.error('Failed to load events:', error);
@@ -117,14 +118,23 @@ export default function Landing() {
     }
     
     setLoading(true);
-    const result = await processIncoming(inputText, 'paste');
-    
-    if (result.success) {
-      toast.success("Compromiso procesado");
-      setInputText("");
-      await loadEvents();
-    } else {
-      toast.error("Error al procesar: " + result.error);
+    try {
+      const result = await processIncoming(inputText, 'paste');
+      
+      if (result.success) {
+        toast.success("Compromiso procesado");
+        setInputText("");
+        await loadEvents();
+        
+        // Force a re-check after loading
+        const allEvents = await db.potentialEvents.toArray();
+        console.log('Events after processing:', allEvents);
+      } else {
+        toast.error("Error al procesar: " + result.error);
+      }
+    } catch (error) {
+      console.error('Error in handleProcessText:', error);
+      toast.error("Error al procesar el texto");
     }
     setLoading(false);
   }
@@ -215,6 +225,13 @@ export default function Landing() {
 
   const leaks = events.filter(e => e.status === 'leak');
   const pending = events.filter(e => e.status === 'pending');
+  
+  console.log('Rendering bandeja:', { 
+    totalEvents: events.length, 
+    leaks: leaks.length, 
+    pending: pending.length,
+    statuses: events.map(e => ({ id: e.id, status: e.status, summary: e.summary }))
+  });
 
   return (
     <div className="ea-page">
