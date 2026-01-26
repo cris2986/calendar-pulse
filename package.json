@@ -1,7 +1,8 @@
 {
-  "name": "vite-template",
+  "name": "event-auditor-pwa",
+  "version": "1.0.0-beta.1",
+  "description": "Privacy-focused PWA for detecting unscheduled commitments",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "packageManager": "bun@1.3.6",
   "scripts": {
@@ -103,5 +104,15 @@
     "typescript-eslint": "^8.53.1",
     "vite": "^7.3.1",
     "vitest": "^1.3.1"
-  }
+  },
+  "keywords": [
+    "pwa",
+    "calendar",
+    "productivity",
+    "privacy",
+    "local-first",
+    "event-management"
+  ],
+  "author": "",
+  "license": "MIT"
 }
