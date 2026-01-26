@@ -61,6 +61,7 @@
     "convex-helpers": "^0.1.111",
     "date-fns": "^4.1.0",
     "dexie": "^4.2.1",
+    "dexie-react-hooks": "^4.2.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.27.1",
     "hono": "^4.11.4",

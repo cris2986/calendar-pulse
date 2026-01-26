@@ -9,10 +9,11 @@ import { PotentialEvent, Settings, CalendarEvent } from "@/core/types";
 import { matchAgainstCalendar } from "@/core/matcher";
 import { deriveStatus } from "@/core/stateMachine";
 import { EventCard } from "@/components/EventCard";
+import { useInbox } from "@/hooks/use-inbox";
 import "../styles/home.css";
 
 export default function Landing() {
-  const [events, setEvents] = useState<PotentialEvent[]>([]);
+  const { events, leaks, pending, isLoading } = useInbox();
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [inputText, setInputText] = useState("");
@@ -34,7 +35,6 @@ export default function Landing() {
     try {
       await initializeSettings();
       await autopurge();
-      await loadEvents();
       await loadSettings();
       await loadCalendarEvents();
       await requestNotificationPermission();
@@ -44,20 +44,6 @@ export default function Landing() {
     } catch (error) {
       console.error('Initialization error:', error);
       throw error;
-    }
-  }
-
-  async function loadEvents() {
-    try {
-      const allEvents = await db.potentialEvents
-        .orderBy('updated_at')
-        .reverse()
-        .toArray();
-      console.log('📋 Loaded events:', allEvents.length, allEvents);
-      setEvents(allEvents);
-    } catch (error) {
-      console.error('Failed to load events:', error);
-      setEvents([]);
     }
   }
 
@@ -92,7 +78,6 @@ export default function Landing() {
       // If window_hours changed, recalculate statuses
       if (key === 'window_hours') {
         await recalculateAllStatuses();
-        await loadEvents();
       }
     } catch (error) {
       toast.error("Error al guardar configuración");
@@ -105,7 +90,6 @@ export default function Landing() {
       await db.calendarEvents.clear();
       await loadCalendarEvents();
       await recalculateAllStatuses();
-      await loadEvents();
       toast.success("Calendario limpiado");
     } catch (error) {
       toast.error("Error al limpiar calendario");
@@ -124,7 +108,6 @@ export default function Landing() {
     if (result.success) {
       toast.success("Compromiso procesado");
       setInputText("");
-      await loadEvents();
     } else {
       toast.error("Error al procesar: " + result.error);
     }
@@ -166,7 +149,6 @@ export default function Landing() {
       await recalculateAllStatuses();
       
       toast.success(`${parsedEvents.length} eventos importados`);
-      await loadEvents();
       await loadCalendarEvents();
       setIcsFile(null);
     } catch (error) {
@@ -196,18 +178,13 @@ export default function Landing() {
 
   async function handleMarkCovered(id: number) {
     await db.potentialEvents.update(id, { status: 'covered', updated_at: new Date() });
-    await loadEvents();
     toast.success("Marcado como cubierto");
   }
 
   async function handleDiscard(id: number) {
     await db.potentialEvents.update(id, { status: 'discarded', updated_at: new Date() });
-    await loadEvents();
     toast.success("Evento descartado");
   }
-
-  const leaks = events.filter(e => e.status === 'leak');
-  const pending = events.filter(e => e.status === 'pending');
 
   return (
     <div className="ea-page">
@@ -315,7 +292,7 @@ export default function Landing() {
             </div>
           ) : (
             <div className="ea-list">
-              {leaks.map(event => (
+              {leaks.map((event: PotentialEvent) => (
                 <EventCard 
                   key={event.id} 
                   event={event} 
@@ -324,7 +301,7 @@ export default function Landing() {
                   onDownloadICS={downloadICS}
                 />
               ))}
-              {pending.map(event => (
+              {pending.map((event: PotentialEvent) => (
                 <EventCard 
                   key={event.id} 
                   event={event} 
