@@ -34,13 +34,9 @@ try {
   const convexUrl = import.meta.env.VITE_CONVEX_URL;
   if (convexUrl && convexUrl !== "undefined") {
     convex = new ConvexReactClient(convexUrl);
-    if (boot) boot.textContent += "CONVEX CLIENT INITIALIZED\n";
-  } else {
-    if (boot) boot.textContent += "CONVEX SKIPPED (no URL)\n";
   }
 } catch (error) {
   console.warn("Convex initialization failed, continuing without it:", error);
-  if (boot) boot.textContent += "CONVEX INIT FAILED (continuing)\n";
 }
 
 function RouteSyncer() {
@@ -68,20 +64,6 @@ function RouteSyncer() {
 
 // App component with layered mounting
 function App() {
-  if (boot) boot.textContent += "APP COMPONENT MOUNTED\n";
-  
-  useEffect(() => {
-    if (boot) {
-      boot.textContent += "ROUTES RENDERED\n";
-      // Auto-hide diagnostic overlay after 3 seconds if no errors
-      setTimeout(() => {
-        if (boot && !boot.textContent.includes("ERROR") && !boot.textContent.includes("UNHANDLED")) {
-          boot.style.display = "none";
-        }
-      }, 3000);
-    }
-  }, []);
-  
   return (
     <BrowserRouter>
       <RouteSyncer />
