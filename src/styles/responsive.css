@@ -31,23 +31,9 @@
 }
 
 /* ============================================
-   FLUID TYPOGRAPHY
+   FLUID TYPOGRAPHY (non-intrusive)
    ============================================ */
-.ea-title {
-  font-size: clamp(14px, 3vw, 18px);
-}
-
-.ea-subtitle {
-  font-size: clamp(11px, 2.5vw, 13px);
-}
-
-.ea-card__title {
-  font-size: clamp(13px, 2.8vw, 15px);
-}
-
-.ea-card__hint {
-  font-size: clamp(11px, 2.2vw, 12px);
-}
+/* Typography is handled by home.css base styles */
 
 /* ============================================
    DESKTOP GRID LAYOUT (Home page)
@@ -135,23 +121,25 @@
    ============================================ */
 /* Mobile: stack actions vertically */
 @media (max-width: 480px) {
-  .ea-event__actions {
+  .ea-event__actions.ea-event__actions--responsive {
     flex-direction: column;
+    gap: 8px;
   }
 
-  .ea-event__actions .ea-btn {
+  .ea-event__actions.ea-event__actions--responsive .ea-btn {
     width: 100%;
   }
 }
 
 /* Tablet and up: actions in row */
 @media (min-width: 481px) {
-  .ea-event__actions {
+  .ea-event__actions.ea-event__actions--responsive {
     flex-direction: row;
     flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .ea-event__actions .ea-btn {
+  .ea-event__actions.ea-event__actions--responsive .ea-btn {
     flex: 1;
     min-width: 120px;
   }
