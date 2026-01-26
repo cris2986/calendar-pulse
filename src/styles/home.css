@@ -50,6 +50,7 @@ body {
   gap: 12px;
   min-width: 0;
   flex: 1;
+  max-width: calc(100% - 180px); /* Reserve space for buttons */
 }
 
 .ea-appmark {
@@ -489,7 +490,7 @@ body {
 
   .ea-header__left {
     gap: 8px;
-    max-width: 60%;
+    max-width: calc(100% - 160px); /* Ensure buttons have space */
   }
 
   .ea-appmark {
