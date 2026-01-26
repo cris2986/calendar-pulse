@@ -42,6 +42,22 @@ export default function Landing() {
       console.error('Failed to initialize app:', error);
       toast.error('Error al inicializar la aplicación: ' + error.message);
     });
+
+    // Handle Web Share Target API
+    const handleShareTarget = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const sharedText = params.get('text') || params.get('title');
+      
+      if (sharedText) {
+        setInputText(sharedText);
+        toast.success("Texto recibido desde compartir");
+        
+        // Clear the URL params
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    handleShareTarget();
   }, []);
 
   useEffect(() => {
@@ -164,6 +180,34 @@ export default function Landing() {
       }
     } catch (error) {
       toast.error("No se pudo acceder al portapapeles");
+    }
+  }
+
+  async function handlePasteAndProcess() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        setInputText(text);
+        setLoading(true);
+        const result = await processIncoming(text, 'paste');
+        
+        if (result.success) {
+          toast.success("Compromiso procesado desde portapapeles");
+          setInputText("");
+          
+          if (debugMode) {
+            await updateDebugStats();
+          }
+        } else {
+          toast.error("Error al procesar: " + result.error);
+        }
+        setLoading(false);
+      } else {
+        toast.error("El portapapeles está vacío");
+      }
+    } catch (error) {
+      toast.error("No se pudo acceder al portapapeles");
+      setLoading(false);
     }
   }
 
@@ -407,6 +451,9 @@ export default function Landing() {
             </button>
             <button className="ea-btn ea-btn--ghost" onClick={handlePaste} type="button" disabled={loading}>
               Pegar
+            </button>
+            <button className="ea-btn ea-btn--primary" onClick={handlePasteAndProcess} type="button" disabled={loading}>
+              📋 Pegar y Procesar
             </button>
           </div>
         </section>
