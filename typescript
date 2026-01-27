@@ -1,0 +1,2 @@
+const leaks = events.filter(e => e.status === 'leak');
+const pending = events.filter(e => e.status === 'pending');
