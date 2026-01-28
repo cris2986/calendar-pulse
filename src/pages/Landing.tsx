@@ -10,6 +10,7 @@ import { matchAgainstCalendar } from "@/core/matcher";
 import { deriveStatus } from "@/core/stateMachine";
 import { EventCard } from "@/components/EventCard";
 import { useInbox } from "@/hooks/use-inbox";
+import { useNotificationListener } from "@/hooks/use-notification-listener";
 import "../styles/home.css";
 
 const formatErrorMessage = (error: unknown) =>
@@ -74,6 +75,28 @@ export default function Landing() {
   const [dbStats, setDbStats] = useState<{ totalCount: number; lastStatus: string | null }>({
     totalCount: 0,
     lastStatus: null
+  });
+
+  // Callback para procesar notificaciones de WhatsApp
+  const handleWhatsAppNotification = useCallback(async (data: { packageName: string; title: string; text: string; timestamp: number }) => {
+    console.log('[NotificationListener] Processing WhatsApp message:', data.text);
+    const result = await processIncoming(data.text, 'notification');
+    if (result.success) {
+      toast.success(`Mensaje de ${data.title} procesado automáticamente`);
+    }
+  }, []);
+
+  // Notification listener for Android (reads WhatsApp notifications)
+  const {
+    isNative,
+    isPermissionGranted: notifPermissionGranted,
+    isListening: notifListening,
+    requestPermission: requestNotifPermission,
+    startListening: startNotifListening,
+    checkPermission: checkNotifPermission,
+  } = useNotificationListener({
+    onNotification: handleWhatsAppNotification,
+    autoStart: true,
   });
 
   const loadCalendarEvents = useCallback(async () => {
@@ -639,13 +662,13 @@ export default function Landing() {
               <div className="ea-field">
                 <span className="ea-label">Notificaciones</span>
                 <div className="ea-row">
-                  <button 
+                  <button
                     className={`ea-btn ${settings.notifications_enabled ? 'ea-btn--primary' : 'ea-btn--ghost'}`}
                     onClick={() => updateSetting('notifications_enabled', true)}
                   >
                     Activadas
                   </button>
-                  <button 
+                  <button
                     className={`ea-btn ${!settings.notifications_enabled ? 'ea-btn--primary' : 'ea-btn--ghost'}`}
                     onClick={() => updateSetting('notifications_enabled', false)}
                   >
@@ -653,6 +676,50 @@ export default function Landing() {
                   </button>
                 </div>
               </div>
+
+              {/* WhatsApp Notification Listener - Solo visible en Android nativo */}
+              {isNative && (
+                <div className="ea-field" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                  <span className="ea-label">📱 Lectura automática de WhatsApp</span>
+                  <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
+                    Detecta automáticamente compromisos desde las notificaciones de WhatsApp
+                  </div>
+
+                  {!notifPermissionGranted ? (
+                    <button
+                      className="ea-btn ea-btn--primary"
+                      onClick={async () => {
+                        await requestNotifPermission();
+                        toast.info("Activa 'Calendar Pulse' en la lista de apps con acceso a notificaciones");
+                      }}
+                    >
+                      Activar acceso a notificaciones
+                    </button>
+                  ) : (
+                    <div className="ea-row ea-row--between">
+                      <span style={{ color: 'var(--success)' }}>✓ Permiso concedido</span>
+                      {notifListening ? (
+                        <span className="ea-badge ea-badge--success">Escuchando</span>
+                      ) : (
+                        <button
+                          className="ea-btn ea-btn--ghost"
+                          onClick={startNotifListening}
+                        >
+                          Iniciar
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    className="ea-btn ea-btn--ghost"
+                    style={{ marginTop: '8px' }}
+                    onClick={checkNotifPermission}
+                  >
+                    Verificar permiso
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -8,23 +8,28 @@ export function deriveStatus(
   matchResult: MatchResult,
   windowHours: number
 ): Status {
-  // Check if expired (start time has passed or is same as now)
-  if (potential.detected_start.getTime() <= now.getTime()) {
+  // For events without specific time (has_time = false), consider them valid until end of day
+  const effectiveStart = potential.has_time
+    ? potential.detected_start
+    : new Date(potential.detected_start.getFullYear(), potential.detected_start.getMonth(), potential.detected_start.getDate(), 23, 59, 59);
+
+  // Check if expired (effective time has passed)
+  if (effectiveStart.getTime() < now.getTime()) {
     return 'expired';
   }
-  
+
   // Check if covered
   if (matchResult.matched) {
     return 'covered';
   }
-  
+
   // Check if leak (within window and not low confidence)
   const hoursUntil = (potential.detected_start.getTime() - now.getTime()) / (1000 * 60 * 60);
-  
+
   if (hoursUntil <= windowHours && potential.confidence !== 'low') {
     return 'leak';
   }
-  
+
   // Otherwise pending
   return 'pending';
 }

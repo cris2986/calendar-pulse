@@ -17,6 +17,9 @@
     "clean": "rm -rf dist node_modules/.cache"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^8.0.2",
     "@convex-dev/auth": "^0.0.90",
     "@faker-js/faker": "^10.2.0",
     "@hookform/resolvers": "^5.2.2",

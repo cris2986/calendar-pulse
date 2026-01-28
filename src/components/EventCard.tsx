@@ -75,7 +75,7 @@ export function EventCard({
           Descartar
         </button>
         <button className="ea-btn ea-btn--primary" type="button" onClick={() => onDownloadICS(event)}>
-          Descargar ICS
+          📅 Agregar al Calendario
         </button>
       </div>
     </article>

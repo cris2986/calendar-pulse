@@ -14,7 +14,7 @@ export interface ParsedDateTime {
 export interface RawRecord {
   id?: number;
   content: string;
-  source: 'paste' | 'share' | 'import' | 'manual';
+  source: 'paste' | 'share' | 'import' | 'manual' | 'notification';
   created_at: Date;
 }
 
