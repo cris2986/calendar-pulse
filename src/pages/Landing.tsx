@@ -12,6 +12,10 @@ import { EventCard } from "@/components/EventCard";
 import { SettingsModal } from "@/components/SettingsModal";
 import { CalendarModal } from "@/components/CalendarModal";
 import { DataManagementModal } from "@/components/DataManagementModal";
+import { LandingHeader } from "@/components/LandingHeader";
+import { CommitmentInputCard } from "@/components/CommitmentInputCard";
+import { CalendarImportCard } from "@/components/CalendarImportCard";
+import { InboxCard } from "@/components/InboxCard";
 import { useInbox } from "@/hooks/use-inbox";
 import { useNotificationListener } from "@/hooks/use-notification-listener";
 import "../styles/home.css";
@@ -474,157 +478,44 @@ export default function Landing() {
 
   return (
     <div className="ea-page">
-      <header className="ea-header">
-        <div className="ea-header__left">
-          <div className="ea-appmark" aria-hidden />
-          <div>
-            <div className="ea-title">Event Auditor</div>
-            <div className="ea-subtitle">Auditor de compromisos no agendados</div>
-          </div>
-        </div>
-        <div className="ea-header__right">
-          <button 
-            className="ea-iconbtn" 
-            aria-label="Debug Mode" 
-            type="button"
-            onClick={() => setDebugMode(!debugMode)}
-            style={{ 
-              background: debugMode ? 'rgba(79, 140, 255, 0.2)' : 'rgba(255, 255, 255, 0.02)',
-              borderColor: debugMode ? 'rgba(79, 140, 255, 0.35)' : 'var(--line)'
-            }}
-          >
-            🐛
-          </button>
-          <button 
-            className="ea-iconbtn" 
-            aria-label="Calendario" 
-            type="button"
-            onClick={() => setShowCalendar(true)}
-          >
-            📅
-          </button>
-          <button 
-            className="ea-iconbtn" 
-            aria-label="Gestión de datos" 
-            type="button"
-            onClick={() => setShowDataManagement(true)}
-          >
-            💾
-          </button>
-          <button 
-            className="ea-iconbtn" 
-            aria-label="Ajustes" 
-            type="button"
-            onClick={() => setShowSettings(true)}
-          >
-            ⚙️
-          </button>
-        </div>
-      </header>
+      <LandingHeader
+        debugMode={debugMode}
+        onToggleDebug={() => setDebugMode(!debugMode)}
+        onOpenCalendar={() => setShowCalendar(true)}
+        onOpenDataManagement={() => setShowDataManagement(true)}
+        onOpenSettings={() => setShowSettings(true)}
+      />
 
       <main className="ea-content ea-content--desktop-grid">
         <div className="ea-column-left">
-          <section className="ea-card">
-            <div className="ea-card__head">
-              <div className="ea-card__title">Ingresar compromiso</div>
-              <div className="ea-card__hint">Pega o escribe texto con fecha/hora.</div>
-            </div>
-            <label className="ea-field">
-              <span className="ea-label">Texto</span>
-              <textarea
-                className="ea-textarea"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder={`Ej:\nmañana 19:00 dentista\nlunes 10:30 reunión`}
-                rows={4}
-                disabled={loading}
-              />
-            </label>
-            <div className="ea-row">
-              <button className="ea-btn ea-btn--primary" onClick={handleProcessText} type="button" disabled={loading}>
-                Procesar
-              </button>
-              <button className="ea-btn ea-btn--ghost" onClick={handlePaste} type="button" disabled={loading}>
-                Pegar
-              </button>
-              <button className="ea-btn ea-btn--primary" onClick={handlePasteAndProcess} type="button" disabled={loading}>
-                📋 Pegar y Procesar
-              </button>
-            </div>
-          </section>
+          <CommitmentInputCard
+            inputText={inputText}
+            loading={loading}
+            onInputChange={setInputText}
+            onProcess={handleProcessText}
+            onPaste={handlePaste}
+            onPasteAndProcess={handlePasteAndProcess}
+          />
         </div>
 
         <div className="ea-column-right">
-          <section className="ea-card">
-          <div className="ea-card__head">
-            <div className="ea-card__title">Calendario objetivo</div>
-            <div className="ea-card__hint">Importa un archivo .ics para comparar.</div>
-          </div>
-          <div className="ea-row ea-row--between">
-            <label className="ea-file">
-              <input 
-                className="ea-file__input" 
-                type="file" 
-                accept=".ics,text/calendar" 
-                onChange={handlePickIcsFile}
-                disabled={loading}
-              />
-              <span className="ea-btn ea-btn--ghost">
-                {icsFile ? icsFile.name.slice(0, 20) : "Seleccionar archivo"}
-              </span>
-            </label>
-            <button className="ea-btn ea-btn--primary" onClick={handleImportIcs} type="button" disabled={loading || !icsFile}>
-              Importar ICS
-            </button>
-          </div>
-        </section>
-
-        <section className="ea-card">
-          <div className="ea-row ea-row--between ea-stack-sm">
-            <div className="ea-card__title">
-              Bandeja {debugMode && <span style={{ color: 'var(--primary)', fontSize: '12px' }}>(DEBUG MODE)</span>}
-            </div>
-            <div className="ea-badges">
-              <span className="ea-badge ea-badge--danger">Fugas {leaks.length}</span>
-              <span className="ea-badge">Pendientes {pending.length}</span>
-              {debugMode && <span className="ea-badge">Total {allEvents.length}</span>}
-            </div>
-          </div>
-
-          {debugMode && (
-            <div className="ea-debug-panel">
-              <div className="ea-debug-stat">
-                <span className="ea-debug-label">DB Count:</span>
-                <span className="ea-debug-value">{dbStats.totalCount}</span>
-              </div>
-              <div className="ea-debug-stat">
-                <span className="ea-debug-label">Last Status:</span>
-                <span className="ea-debug-value">{dbStats.lastStatus || 'N/A'}</span>
-              </div>
-            </div>
-          )}
-          
-          {displayEvents.length === 0 ? (
-            <div className="ea-empty">
-              <div className="ea-empty__icon">📭</div>
-              <div className="ea-empty__text">
-                {debugMode ? 'No hay eventos procesados (modo debug)' : 'No hay compromisos sin agendar próximos'}
-              </div>
-            </div>
-          ) : (
-            <div className="ea-list">
-              {displayEvents.map((event: PotentialEvent) => (
-                <EventCard 
-                  key={event.id} 
-                  event={event} 
-                  onMarkCovered={handleMarkCovered}
-                  onDiscard={handleDiscard}
-                  onDownloadICS={downloadICS}
-                />
-              ))}
-            </div>
-          )}
-          </section>
+          <CalendarImportCard
+            icsFile={icsFile}
+            loading={loading}
+            onPickFile={handlePickIcsFile}
+            onImport={handleImportIcs}
+          />
+          <InboxCard
+            debugMode={debugMode}
+            leaks={leaks}
+            pending={pending}
+            allEvents={allEvents}
+            displayEvents={displayEvents}
+            dbStats={dbStats}
+            onMarkCovered={handleMarkCovered}
+            onDiscard={handleDiscard}
+            onDownloadICS={downloadICS}
+          />
         </div>
       </main>
 

@@ -38,52 +38,67 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.status === 200) {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone());
+  }
+  return response;
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    return cached || caches.match('/') || new Response('Offline', { status: 503 });
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.status === 200) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  });
+  return cached || fetchPromise;
+}
+
+// Fetch event - strategy by request type
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
-
-  // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
-
-  // Skip API calls to Convex or other external services
   if (url.hostname !== self.location.hostname) return;
 
-  event.respondWith(
-    // Network first strategy for HTML and API
-    fetch(request)
-      .then((response) => {
-        // Clone the response before caching
-        const responseClone = response.clone();
+  const isStaticAsset =
+    STATIC_ASSETS.includes(url.pathname) ||
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.ico');
 
-        // Cache successful responses
-        if (response.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-        }
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request));
+    return;
+  }
 
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache on network failure
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-
-          // Return the offline page for navigation requests
-          if (request.mode === 'navigate') {
-            return caches.match('/');
-          }
-
-          return new Response('Offline', { status: 503 });
-        });
-      })
-  );
+  event.respondWith(isStaticAsset ? cacheFirst(request) : staleWhileRevalidate(request));
 });
 
 // Handle messages from the app
