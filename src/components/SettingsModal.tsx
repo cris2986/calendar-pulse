@@ -8,9 +8,9 @@ interface SettingsModalProps {
   isNative: boolean;
   notifPermissionGranted: boolean;
   notifListening: boolean;
-  requestNotifPermission: () => Promise<void>;
-  startNotifListening: () => void;
-  checkNotifPermission: () => void;
+  requestNotifPermission: () => Promise<boolean>;
+  startNotifListening: () => Promise<boolean>;
+  checkNotifPermission: () => Promise<boolean>;
 }
 
 export function SettingsModal({
