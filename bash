@@ -1,1 +1,1 @@
-bun run test
+bun run lint && bun test && bun run build
