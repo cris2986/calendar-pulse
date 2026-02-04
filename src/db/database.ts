@@ -32,6 +32,12 @@ export const db = new EventAuditorDB();
 // Initialize default settings
 export async function initializeSettings(): Promise<void> {
   try {
+    // Request persistent storage
+    if (navigator.storage && navigator.storage.persist) {
+      const isPersisted = await navigator.storage.persist();
+      console.log(`[DB] Storage persisted: ${isPersisted}`);
+    }
+
     const existing = await db.settings.get(1);
     if (!existing) {
       await db.settings.add({

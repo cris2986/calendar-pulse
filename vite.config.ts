@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import * as path from 'path';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -10,8 +10,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  server: {
-    host: true,
-    port: 5173,
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router'],
+          'ui': ['framer-motion', 'lucide-react', 'sonner'],
+          'db': ['dexie', 'dexie-react-hooks'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 });

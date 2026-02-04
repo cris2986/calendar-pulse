@@ -9,6 +9,9 @@ import { PotentialEvent, Settings, CalendarEvent, RawRecord } from "@/core/types
 import { matchAgainstCalendar } from "@/core/matcher";
 import { deriveStatus } from "@/core/stateMachine";
 import { EventCard } from "@/components/EventCard";
+import { SettingsModal } from "@/components/SettingsModal";
+import { CalendarModal } from "@/components/CalendarModal";
+import { DataManagementModal } from "@/components/DataManagementModal";
 import { useInbox } from "@/hooks/use-inbox";
 import { useNotificationListener } from "@/hooks/use-notification-listener";
 import "../styles/home.css";
@@ -627,206 +630,36 @@ export default function Landing() {
 
       {/* Settings Modal */}
       {showSettings && settings && (
-        <div className="ea-modal-backdrop" onClick={() => setShowSettings(false)}>
-          <div className="ea-modal" onClick={e => e.stopPropagation()}>
-            <div className="ea-modal__header">
-              <div className="ea-modal__title">Configuración</div>
-              <button className="ea-modal__close" onClick={() => setShowSettings(false)}>×</button>
-            </div>
-            <div className="ea-modal__content">
-              <div className="ea-field">
-                <span className="ea-label">Ventana de detección</span>
-                <select 
-                  className="ea-select"
-                  value={settings.window_hours}
-                  onChange={(e) => updateSetting('window_hours', Number(e.target.value) as 24 | 48)}
-                >
-                  <option value={24}>24 horas</option>
-                  <option value={48}>48 horas</option>
-                </select>
-              </div>
-              
-              <div className="ea-field">
-                <span className="ea-label">Retención de datos</span>
-                <select 
-                  className="ea-select"
-                  value={settings.retention_days}
-                  onChange={(e) => updateSetting('retention_days', Number(e.target.value) as 7 | 30 | 90)}
-                >
-                  <option value={7}>7 días</option>
-                  <option value={30}>30 días</option>
-                  <option value={90}>90 días</option>
-                </select>
-              </div>
-
-              <div className="ea-field">
-                <span className="ea-label">Notificaciones</span>
-                <div className="ea-row">
-                  <button
-                    className={`ea-btn ${settings.notifications_enabled ? 'ea-btn--primary' : 'ea-btn--ghost'}`}
-                    onClick={() => updateSetting('notifications_enabled', true)}
-                  >
-                    Activadas
-                  </button>
-                  <button
-                    className={`ea-btn ${!settings.notifications_enabled ? 'ea-btn--primary' : 'ea-btn--ghost'}`}
-                    onClick={() => updateSetting('notifications_enabled', false)}
-                  >
-                    Desactivadas
-                  </button>
-                </div>
-              </div>
-
-              {/* WhatsApp Notification Listener - Solo visible en Android nativo */}
-              {isNative && (
-                <div className="ea-field" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                  <span className="ea-label">📱 Lectura automática de WhatsApp</span>
-                  <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
-                    Detecta automáticamente compromisos desde las notificaciones de WhatsApp
-                  </div>
-
-                  {!notifPermissionGranted ? (
-                    <button
-                      className="ea-btn ea-btn--primary"
-                      onClick={async () => {
-                        await requestNotifPermission();
-                        toast.info("Activa 'Calendar Pulse' en la lista de apps con acceso a notificaciones");
-                      }}
-                    >
-                      Activar acceso a notificaciones
-                    </button>
-                  ) : (
-                    <div className="ea-row ea-row--between">
-                      <span style={{ color: 'var(--success)' }}>✓ Permiso concedido</span>
-                      {notifListening ? (
-                        <span className="ea-badge ea-badge--success">Escuchando</span>
-                      ) : (
-                        <button
-                          className="ea-btn ea-btn--ghost"
-                          onClick={startNotifListening}
-                        >
-                          Iniciar
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <button
-                    className="ea-btn ea-btn--ghost"
-                    style={{ marginTop: '8px' }}
-                    onClick={checkNotifPermission}
-                  >
-                    Verificar permiso
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <SettingsModal
+          settings={settings}
+          onClose={() => setShowSettings(false)}
+          onUpdateSetting={updateSetting}
+          isNative={isNative}
+          notifPermissionGranted={notifPermissionGranted}
+          notifListening={notifListening}
+          requestNotifPermission={requestNotifPermission}
+          startNotifListening={startNotifListening}
+          checkNotifPermission={checkNotifPermission}
+        />
       )}
 
       {/* Calendar Modal */}
       {showCalendar && (
-        <div className="ea-modal-backdrop" onClick={() => setShowCalendar(false)}>
-          <div className="ea-modal" onClick={e => e.stopPropagation()}>
-            <div className="ea-modal__header">
-              <div className="ea-modal__title">Eventos importados</div>
-              <button className="ea-modal__close" onClick={() => setShowCalendar(false)}>×</button>
-            </div>
-            <div className="ea-modal__content">
-              <div className="ea-row ea-row--between">
-                <span className="ea-label">{calendarEvents.length} eventos</span>
-                {calendarEvents.length > 0 && (
-                  <button className="ea-btn ea-btn--ghost" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleClearCalendar}>
-                    Borrar todo
-                  </button>
-                )}
-              </div>
-              
-              {calendarEvents.length === 0 ? (
-                <div className="ea-empty">
-                  <div className="ea-empty__text">No hay eventos importados</div>
-                </div>
-              ) : (
-                <div className="ea-list">
-                  {calendarEvents.slice(0, 50).map(ev => (
-                    <div key={ev.id} className="ea-list-item">
-                      <div className="ea-list-item__top">
-                        <span>{ev.summary}</span>
-                      </div>
-                      <div className="ea-list-item__sub">
-                        {ev.start.toLocaleString()}
-                      </div>
-                    </div>
-                  ))}
-                  {calendarEvents.length > 50 && (
-                    <div className="ea-list-item" style={{ textAlign: 'center', color: 'var(--muted)' }}>
-                      ... y {calendarEvents.length - 50} más
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <CalendarModal
+          calendarEvents={calendarEvents}
+          onClose={() => setShowCalendar(false)}
+          onClearCalendar={handleClearCalendar}
+        />
       )}
 
       {/* Data Management Modal */}
       {showDataManagement && (
-        <div className="ea-modal-backdrop" onClick={() => setShowDataManagement(false)}>
-          <div className="ea-modal" onClick={e => e.stopPropagation()}>
-            <div className="ea-modal__header">
-              <div className="ea-modal__title">Gestión de datos</div>
-              <button className="ea-modal__close" onClick={() => setShowDataManagement(false)}>×</button>
-            </div>
-            <div className="ea-modal__content">
-              <div className="ea-field">
-                <span className="ea-label">Exportar datos</span>
-                <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
-                  Descarga una copia de seguridad de todos tus datos locales
-                </div>
-                <button className="ea-btn ea-btn--primary" onClick={handleExportData}>
-                  📥 Exportar a JSON
-                </button>
-              </div>
-
-              <div className="ea-field">
-                <span className="ea-label">Importar datos</span>
-                <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
-                  Restaura datos desde un archivo de respaldo
-                </div>
-                <label className="ea-file">
-                  <input 
-                    className="ea-file__input" 
-                    type="file" 
-                    accept=".json,application/json"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImportData(file);
-                    }}
-                  />
-                  <span className="ea-btn ea-btn--primary">
-                    📤 Seleccionar archivo JSON
-                  </span>
-                </label>
-              </div>
-
-              <div className="ea-field" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
-                <span className="ea-label" style={{ color: 'var(--danger)' }}>Zona de peligro</span>
-                <div className="ea-card__hint" style={{ marginBottom: '8px' }}>
-                  Elimina permanentemente todos los datos locales
-                </div>
-                <button 
-                  className="ea-btn ea-btn--ghost" 
-                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                  onClick={handleResetAllData}
-                >
-                  🗑️ Resetear todos los datos
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DataManagementModal
+          onClose={() => setShowDataManagement(false)}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+          onResetAllData={handleResetAllData}
+        />
       )}
     </div>
   );
